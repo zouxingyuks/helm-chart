@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "claude-relay-service.fullname" . }}
+  labels:
+    {{- include "claude-relay-service.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+      "app": {
+        "name": "{{ .Chart.Name }}",
+        "version": "{{ .Chart.Version }}",
+        "port": {{ .Values.service.port }}
+      },
+      "api": {
+        "keyPrefix": "{{ .Values.env.API_KEY_PREFIX }}",
+        "claudeApiUrl": "{{ .Values.env.CLAUDE_API_URL }}",
+        "claudeApiVersion": "{{ .Values.env.CLAUDE_API_VERSION }}",
+        "claudeBetaHeader": "{{ .Values.env.CLAUDE_BETA_HEADER }}"
+      },
+      "admin": {
+        "sessionTimeout": {{ .Values.env.ADMIN_SESSION_TIMEOUT }}
+      },
+      "redis": {
+        "enabled": {{ .Values.redis.enabled }}{{- if .Values.redis.enabled }},
+        "host": "{{ include "claude-relay-service.fullname" . }}-redis-master",
+        "port": 6379,
+        "db": 0{{- end }}
+      }
+    }

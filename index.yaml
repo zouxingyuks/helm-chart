@@ -1,0 +1,25 @@
+apiVersion: v1
+entries:
+  claude-relay-service:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2025-11-29T10:07:55.697658143Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - bitnami-common
+      version: 2.x.x
+    - alias: redis
+      condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: 17.x.x
+    description: A Helm chart for Kubernetes
+    digest: ad81509c49f4d16d14d9bfcca093a5cba719a1ae694c8fdb79f0f3c99f0a7fa4
+    name: claude-relay-service
+    type: application
+    urls:
+    - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-11-29T10:07:55.683008512Z"

@@ -1,0 +1,28 @@
+{{- if and .Values.persistence.logs.enabled (not .Values.persistence.logs.existingClaim) }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "claude-relay-service.logsPersistentVolumeClaimName" . }}
+  labels:
+    {{- include "claude-relay-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: logs
+  {{- if .Values.persistence.logs.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.persistence.logs.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- range .Values.persistence.logs.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.logs.size | quote }}
+  {{- if .Values.persistence.logs.storageClass }}
+  storageClassName: {{ .Values.persistence.logs.storageClass | quote }}
+  {{- else if .Values.persistence.logs.storageClassOverride }}
+  storageClassName: {{ .Values.persistence.logs.storageClassOverride | quote }}
+  {{- end }}
+{{- end -}}

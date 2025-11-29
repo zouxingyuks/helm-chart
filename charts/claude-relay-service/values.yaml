@@ -1,0 +1,227 @@
+# Default values for claude-relay.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: weishaw/claude-relay-service
+  pullPolicy: IfNotPresent
+  tag: latest
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 3000
+  annotations: {}
+  clusterIP: ""
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hostname: claude-relay.example.com
+  path: /
+  pathType: Prefix
+  tls: {}
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Redis configuration (internal bitnami/redis chart)
+redis:
+  enabled: true
+
+  # Persistence configuration
+  persistence:
+    enabled: false  # Default: disabled for development/testing
+    storageClass: ""  # Default: cluster default
+    size: 8Gi  # Default: 8Gi for both master and replica
+    accessModes:
+      - "ReadWriteOnce"
+    annotations: {}
+
+  # Internal Redis storage configuration
+  auth:
+    enabled: true
+    password: ""
+    existingSecret: ""
+    existingSecretPasswordKey: ""
+  global:
+    redis:
+      password: ""
+  commonConfiguration: |-
+    # Default: Disable RDB persistence for development/testing
+    save ""
+    # Default: Disable AOF persistence for development/testing
+    appendonly no
+    # Default: Disable protected mode
+    protected-mode no
+  master:
+    persistence:
+      enabled: false
+  replica:
+    replicaCount: 1
+    persistence:
+      enabled: false
+
+env:
+  # 🔐 安全配置
+  JWT_SECRET: ""
+  ENCRYPTION_KEY: ""
+  ADMIN_SESSION_TIMEOUT: 86400000  # 24小时
+  ADMIN_USERNAME: ""
+  ADMIN_PASSWORD: ""
+  API_KEY_PREFIX: "cr_"
+
+  # 🤖 Claude API 配置
+  CLAUDE_API_URL: "https://api.anthropic.com/v1/messages"
+  CLAUDE_API_VERSION: "2023-06-01"
+  CLAUDE_BETA_HEADER: "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14"
+
+  # 🌐 服务器配置
+  PORT: "3000"
+  HOST: "0.0.0.0"
+  NODE_ENV: "production"
+  TRUST_PROXY: "false"
+
+  # 📊 负载控制配置
+  DEFAULT_TOKEN_LIMIT: 1000000
+  MAX_PROXY_RETRIES: 3
+
+  # 📝️ 日志配置
+  LOG_LEVEL: "info"
+  LOG_MAX_SIZE: "10m"
+  LOG_MAX_FILES: "5"
+
+  # 🧹 系统配置
+  CLEANUP_INTERVAL: "3600000"  # 1小时
+  TOKEN_USAGE_RETENTION: "2592000000"  # 30天
+  HEALTH_CHECK_INTERVAL: "60000"  # 1分钟
+  SYSTEM_TIMEZONE: "Asia/Shanghai"
+  TIMEZONE_OFFSET: "8"
+
+  # 🌐 Web界面配置
+  WEB_TITLE: "Claude Relay Service"
+  WEB_DESCRIPTION: "Multi-account Claude API relay service with beautiful management interface"
+  WEB_LOGO_URL: "/assets/logo.png"
+  ENABLE_CORS: "true"
+  WEB_SESSION_SECRET: "CHANGE-THIS-SESSION-SECRET"
+
+  # 👥 LDAP 认证配置（可选）
+  LDAP_ENABLED: "false"
+  LDAP_URL: ""
+  LDAP_BIND_DN: ""
+  LDAP_BIND_PASSWORD: ""
+  LDAP_SEARCH_BASE: ""
+  LDAP_SEARCH_FILTER: "(uid={{username}})"
+  LDAP_SEARCH_ATTRIBUTES: "dn,uid,cn,mail,givenName,sn"
+  LDAP_TIMEOUT: "5000"
+  LDAP_CONNECT_TIMEOUT: "10000"
+  LDAP_TLS_REJECT_UNAUTHORIZED: "true"
+  LDAP_TLS_CA_FILE: ""
+  LDAP_TLS_CERT_FILE: ""
+  LDAP_TLS_KEY_FILE: ""
+  LDAP_TLS_SERVER_NAME: ""
+  LDAP_USER_ATTR_USERNAME: "uid"
+  LDAP_USER_ATTR_DISPLAY_NAME: "cn"
+  LDAP_USER_ATTR_EMAIL: "mail"
+  LDAP_USER_ATTR_FIRST_NAME: "givenName"
+  LDAP_USER_ATTR_LAST_NAME: "sn"
+
+  # 👥 用户管理配置
+  USER_MANAGEMENT_ENABLED: "true"
+  DEFAULT_USER_ROLE: "user"
+  USER_SESSION_TIMEOUT: "86400000"  # 24小时
+  MAX_API_KEYS_PER_USER: "1"
+  ALLOW_USER_DELETE_API_KEYS: "false"
+
+  # 📢 Webhook 配置（可选）
+  WEBHOOK_ENABLED: "false"
+  WEBHOOK_URLS: ""
+  WEBHOOK_TIMEOUT: "10000"
+  WEBHOOK_RETRIES: "3"
+
+  # 🛠️ 开发配置
+  DEBUG: "false"
+  HOT_RELOAD: "false"
+
+# Health check configuration
+healthCheck:
+  path: /health
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+# Persistence configuration
+persistence:
+  # Data persistence (for application data)
+  data:
+    enabled: false  # Default: disabled for development/testing
+    existingClaim: ""  # If you want to reuse an existing PVC
+    storageClass: ""  # Default: cluster default
+    size: 8Gi  # Default: 8Gi for application data
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+
+  # Logs persistence (for application logs)
+  logs:
+    enabled: false  # Default: disabled for development/testing
+    existingClaim: ""  # If you want to reuse an existing PVC
+    storageClass: ""  # Default: cluster default
+    size: 2Gi  # Default: 2Gi for logs
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+
+# Application startup configuration
+startup:
+  waitForRedis:
+    enabled: true
+    timeout: 120
+    image: busybox:1.36

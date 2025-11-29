@@ -1,0 +1,28 @@
+{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.existingClaim) }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ include "claude-relay-service.dataPersistentVolumeClaimName" . }}
+  labels:
+    {{- include "claude-relay-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: data
+  {{- if .Values.persistence.data.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.persistence.data.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  accessModes:
+    {{- range .Values.persistence.data.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.data.size | quote }}
+  {{- if .Values.persistence.data.storageClass }}
+  storageClassName: {{ .Values.persistence.data.storageClass | quote }}
+  {{- else if .Values.persistence.data.storageClassOverride }}
+  storageClassName: {{ .Values.persistence.data.storageClassOverride | quote }}
+  {{- end }}
+{{- end -}}
