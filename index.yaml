@@ -3,7 +3,7 @@ entries:
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2025-11-29T10:07:55.697658143Z"
+    created: "2026-01-08T17:43:47.472756038Z"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -22,4 +22,29 @@ entries:
     urls:
     - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
     version: 0.1.0
-generated: "2025-11-29T10:07:55.683008512Z"
+  subconverter:
+  - apiVersion: v2
+    appVersion: 0.9.0
+    created: "2026-01-08T17:43:47.473410474Z"
+    description: A Helm chart for subconverter - subscription conversion utility for
+      various proxy formats
+    digest: 2a74df4b2a43e2141e44116f6764d4ebaf39a6f02955832c97802d9b1ed51f41
+    home: https://github.com/tindy2013/subconverter
+    keywords:
+    - subconverter
+    - subscription
+    - conversion
+    - proxy
+    - clash
+    - v2ray
+    - surge
+    maintainers:
+    - name: helm-chart-maintainer
+    name: subconverter
+    sources:
+    - https://github.com/tindy2013/subconverter
+    type: application
+    urls:
+    - https://helm-chart.anubis.cafe/subconverter-0.1.0.tgz
+    version: 0.1.0
+generated: "2026-01-08T17:43:47.463822196Z"

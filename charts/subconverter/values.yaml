@@ -1,0 +1,129 @@
+# Default values for subconverter.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: tindy2013/subconverter
+  pullPolicy: IfNotPresent
+  tag: "0.9.0"  # Use specific version for production deployments; avoid using latest
+  # pullSecrets: []
+  # - name: myRegistryKeySecretName
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 25500
+  annotations: {}
+  clusterIP: ""
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+  hostname: subconverter.example.com
+  path: /
+  pathType: Prefix
+  tls: []
+  # - hosts:
+  #     - subconverter.example.com
+  #   secretName: subconverter-tls
+
+# Configuration mode: default, configmap, or customImage
+# - default: Use built-in configuration from image
+# - configmap: Mount configuration files from ConfigMap (requires configFiles to be set)
+# - customImage: Use custom image with embedded configuration
+configMode: default
+
+# Configuration files for configmap mode
+# These files will be mounted at /base/ in the container
+configFiles: {}
+  # pref.yaml: |
+  #   # Your pref configuration in YAML format
+  #   # This will be converted to the format expected by subconverter
+  #
+  # ruleset/custom.txt: |
+  #   # Your custom rules
+  #
+  # snippets/my-snippet.txt: |
+  #   # Your custom snippets
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1  # NOTE: minAvailable and maxUnavailable are mutually exclusive - only set one
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Persistence configuration for storing custom configurations and rules
+# When enabled, a PVC will be created and mounted at /base/
+persistence:
+  enabled: false
+  # existingClaim: ""  # If you want to reuse an existing PVC
+  storageClass: ""  # Default: cluster default
+  size: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  annotations: {}
+
+# Health check configuration
+healthCheck:
+  enabled: true
+  path: /version
+  livenessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 10
+    successThreshold: 1
+    failureThreshold: 3
