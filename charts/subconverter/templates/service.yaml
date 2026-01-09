@@ -14,9 +14,15 @@ spec:
   clusterIP: {{ .Values.service.clusterIP }}
   {{- end }}
   ports:
-  - port: {{ .Values.service.port }}
+  {{- if .Values.frontend.enabled }}
+  - name: http
+    port: 80
     targetPort: http
     protocol: TCP
-    name: http
+  {{- end }}
+  - name: backend
+    port: {{ .Values.service.port }}
+    targetPort: http
+    protocol: TCP
   selector:
     {{- include "subconverter.selectorLabels" . | nindent 4 }}

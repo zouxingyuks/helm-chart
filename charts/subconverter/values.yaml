@@ -2,6 +2,7 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# When autoscaling.enabled is true, this value is ignored and managed by HPA
 replicaCount: 1
 
 image:
@@ -57,11 +58,12 @@ ingress:
 
 # Configuration mode: default, configmap, or customImage
 # - default: Use built-in configuration from image
-# - configmap: Mount configuration files from ConfigMap (requires configFiles to be set)
+# - configmap: Mount configuration files from ConfigMap (requires configFiles to be populated)
 # - customImage: Use custom image with embedded configuration
 configMode: default
 
 # Configuration files for configmap mode
+# IMPORTANT: When configMode is "configmap", configFiles must be populated with at least one file
 # These files will be mounted at /base/ in the container
 configFiles: {}
   # pref.yaml: |
@@ -101,6 +103,7 @@ tolerations: []
 affinity: {}
 
 # Persistence configuration for storing custom configurations and rules
+# WARNING: persistence.enabled cannot be used together with configMode "configmap"
 # When enabled, a PVC will be created and mounted at /base/
 persistence:
   enabled: false
@@ -127,3 +130,65 @@ healthCheck:
     timeoutSeconds: 10
     successThreshold: 1
     failureThreshold: 3
+
+# Frontend container configuration (sub-web-modify)
+# Provides a web UI for subscription conversion
+frontend:
+  enabled: true  # Set to false to disable the frontend container
+  image:
+    repository: youshandefeiyang/sub-web-modify
+    tag: latest  # Use a specific version tag for production (e.g., v1.0.0)
+    pullPolicy: IfNotPresent
+    # pullSecrets: []
+    # - name: myRegistryKeySecretName
+
+  # API URL configuration for the frontend
+  # Leave empty to use the local backend (http://localhost:25500)
+  # Set to an external URL to connect to a remote backend
+  apiURL: ""  # Example: "https://subconverter-api.example.com"
+
+  # Additional environment variables for the frontend container
+  # Example:
+  # - name: NODE_ENV
+  #   value: production
+  env: []
+
+  # Container security context for frontend
+  securityContext:
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 1000
+
+  # Resource limits and requests for the frontend container
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  # Health check configuration for frontend
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 3

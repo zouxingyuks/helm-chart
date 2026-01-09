@@ -10,17 +10,25 @@ To learn more about the release, try:
 {{- if .Values.ingress.enabled }}
 
 {{- else }}
-  Export the service to access subconverter:
+{{- if .Values.frontend.enabled }}
+  You can forward the frontend service to access the web UI:
 
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "subconverter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "subconverter.fullname" . }} 8080:80
 
+  Then access the web UI at: http://localhost:8080
+
+  For direct backend API access:
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "subconverter.fullname" . }} 25501:25500
+
+  Then access the backend API at: http://localhost:25501
+{{- else }}
   You can forward the service port to your local machine:
 
-  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "subconverter.fullname" . }} 25500:80
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "subconverter.fullname" . }} 25500:25500
 
-  Then access the service at:
-
-  http://localhost:25500
+  Then access the service at: http://localhost:25500
+{{- end }}
 {{- end }}
 
 Configuration Mode: {{ .Values.configMode }}
