@@ -1,0 +1,49 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+{{- if .Values.ingress.enabled }}
+
+{{- else }}
+  Export the service to access subconverter:
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "subconverter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+
+  You can forward the service port to your local machine:
+
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "subconverter.fullname" . }} 25500:80
+
+  Then access the service at:
+
+  http://localhost:25500
+{{- end }}
+
+Configuration Mode: {{ .Values.configMode }}
+
+To check the health of your deployment:
+
+  kubectl exec -it -n {{ .Release.Namespace }} <pod-name> -- curl http://localhost:25500/version
+
+Useful commands:
+
+  # View logs
+  kubectl logs -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "subconverter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+  # View pod status
+  kubectl get pods -n {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "subconverter.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+  # Describe the deployment
+  kubectl describe deployment -n {{ .Release.Namespace }} {{ include "subconverter.fullname" . }}
+
+Upgrade the release:
+
+  $ helm upgrade {{ .Release.Name }} .
+
+Uninstall the release:
+
+  $ helm uninstall {{ .Release.Name }}
