@@ -6,7 +6,7 @@
 replicaCount: 1
 
 image:
-  repository: tindy2013/subconverter
+  repository: asdlokj1qpi23/subconverter
   pullPolicy: IfNotPresent
   tag: "0.9.0"  # Use specific version for production deployments; avoid using latest
   # pullSecrets: []
