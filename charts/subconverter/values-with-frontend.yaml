@@ -1,0 +1,61 @@
+# 示例配置: 使用前端容器 (默认配置)
+# 此配置启用 sub-web-modify 前端,连接到本地后端
+
+# 后端配置
+image:
+  repository: tindy2013/subconverter
+  tag: "0.9.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# 前端配置 (默认启用)
+frontend:
+  enabled: true
+  image:
+    repository: youshandefeiyang/sub-web-modify
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # API URL 留空以使用本地后端 (http://localhost:25500)
+  apiURL: ""
+
+  # 可选: 添加自定义环境变量
+  env: []
+    # - name: NODE_ENV
+    #   value: production
+
+  # 前端资源配置
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Service 配置
+service:
+  type: ClusterIP
+  port: 25500  # 后端端口
+
+# Ingress 配置 (可选)
+ingress:
+  enabled: false  # 设置为 true 以启用外部访问
+  className: "nginx"
+  hostname: subconverter.example.com
+  path: /
+  pathType: Prefix
+  tls: []
+  # - hosts:
+  #     - subconverter.example.com
+  #   secretName: subconverter-tls
+
+# 资源配置
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

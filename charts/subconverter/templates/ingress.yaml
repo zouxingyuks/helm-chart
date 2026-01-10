@@ -23,7 +23,11 @@ spec:
           service:
             name: {{ include "subconverter.fullname" . }}
             port:
+              {{- if .Values.frontend.enabled }}
+              number: 80
+              {{- else }}
               number: {{ .Values.service.port }}
+              {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}

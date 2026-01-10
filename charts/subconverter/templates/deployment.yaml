@@ -1,3 +1,6 @@
+{{- if and (eq .Values.configMode "configmap") .Values.persistence.enabled }}
+{{- fail "ERROR: configMode 'configmap' and persistence.enabled cannot both be true. Please enable only one configuration method." }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +9,7 @@ metadata:
     {{- include "subconverter.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
+  # When autoscaling.enabled is true, replicas field is omitted and replicaCount is ignored
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
@@ -62,18 +66,72 @@ spec:
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-        volumeMounts:
         {{- if or (eq .Values.configMode "configmap") .Values.persistence.enabled }}
+        volumeMounts:
+        {{- if eq .Values.configMode "configmap" }}
         - name: config
           mountPath: /base
         {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          mountPath: /base
+        {{- end }}
+        {{- end }}
+      {{- if .Values.frontend.enabled }}
+      - name: {{ .Chart.Name }}-frontend
+        securityContext:
+          {{- toYaml .Values.frontend.securityContext | nindent 12 }}
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        - name: API_URL
+          {{- if .Values.frontend.apiURL }}
+          value: {{ .Values.frontend.apiURL | quote }}
+          {{- else }}
+          # When apiURL is empty, frontend connects to backend via localhost
+          # Both containers run in the same Pod, sharing the same network namespace
+          value: "http://localhost:25500"
+          {{- end }}
+        {{- with .Values.frontend.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.frontend.healthCheck.enabled }}
+        # Health check probes for the frontend container
+        # The frontend container should respond to HTTP requests on port 80
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthCheck.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthCheck.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.frontend.healthCheck.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.frontend.healthCheck.livenessProbe.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthCheck.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthCheck.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.frontend.healthCheck.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.frontend.healthCheck.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 12 }}
+      {{- end }}
       volumes:
       {{- if eq .Values.configMode "configmap" }}
       - name: config
         configMap:
           name: {{ include "subconverter.fullname" . }}-config
-      {{- else if .Values.persistence.enabled }}
-      - name: config
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      - name: data
         {{- if .Values.persistence.existingClaim }}
         persistentVolumeClaim:
           claimName: {{ .Values.persistence.existingClaim }}

@@ -1,0 +1,65 @@
+# 示例配置: 前端连接到外部 API
+# 此配置用于前后端分离部署场景
+
+# 后端配置
+image:
+  repository: tindy2013/subconverter
+  tag: "0.9.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# 前端配置
+frontend:
+  enabled: true
+  image:
+    repository: youshandefeiyang/sub-web-modify
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # 配置外部 API URL
+  apiURL: "https://subconverter-api.example.com"
+
+  # 可选: 添加自定义环境变量
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: LOG_LEVEL
+      value: info
+
+  # 前端资源配置
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Service 配置
+service:
+  type: ClusterIP
+  port: 25500
+
+# Ingress 配置
+ingress:
+  enabled: true
+  className: "nginx"
+  hostname: subconverter-ui.example.com
+  path: /
+  pathType: Prefix
+  annotations:
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+  tls: []
+  # - hosts:
+  #     - subconverter-ui.example.com
+  #   secretName: subconverter-ui-tls
+
+# 资源配置
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
