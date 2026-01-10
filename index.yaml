@@ -3,7 +3,7 @@ entries:
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-01-08T17:43:47.472756038Z"
+    created: "2026-01-10T13:15:10.137801624Z"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -14,9 +14,9 @@ entries:
       condition: redis.enabled
       name: redis
       repository: https://charts.bitnami.com/bitnami
-      version: 17.x.x
+      version: 23.x.x
     description: A Helm chart for Kubernetes
-    digest: ad81509c49f4d16d14d9bfcca093a5cba719a1ae694c8fdb79f0f3c99f0a7fa4
+    digest: d919e62a3b7b754302a67ab6a2803c150400e3a350f158ad65b1a97bafc34753
     name: claude-relay-service
     type: application
     urls:
@@ -25,10 +25,10 @@ entries:
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-01-08T17:43:47.473410474Z"
-    description: A Helm chart for subconverter - subscription conversion utility for
-      various proxy formats
-    digest: 2a74df4b2a43e2141e44116f6764d4ebaf39a6f02955832c97802d9b1ed51f41
+    created: "2026-01-10T13:15:10.142561094Z"
+    description: A Helm chart for subconverter with sub-web-modify frontend - subscription
+      conversion utility with web UI for various proxy formats
+    digest: 3598c0ee9860215dc14d2e6558a1277868f37936df50795c21682899a8dfdecb
     home: https://github.com/tindy2013/subconverter
     keywords:
     - subconverter
@@ -38,13 +38,14 @@ entries:
     - clash
     - v2ray
     - surge
-    maintainers:
-    - name: helm-chart-maintainer
+    - frontend
+    - web-ui
     name: subconverter
     sources:
     - https://github.com/tindy2013/subconverter
+    - https://github.com/youshandefeiyang/sub-web-modify
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/subconverter-0.1.0.tgz
-    version: 0.1.0
-generated: "2026-01-08T17:43:47.463822196Z"
+    - https://helm-chart.anubis.cafe/subconverter-0.2.0.tgz
+    version: 0.2.0
+generated: "2026-01-10T13:15:10.117955591Z"
