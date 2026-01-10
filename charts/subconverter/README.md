@@ -2,11 +2,14 @@
 
 ## Introduction
 
-Subconverter is a utility to convert between various proxy subscription formats. It supports conversion between Clash, V2Ray, Surge, Quantumult X, and many other popular proxy clients.
+Subconverter is a utility to convert between various proxy subscription formats. It supports conversion between Clash,
+V2Ray, Surge, Quantumult X, and many other popular proxy clients.
 
 This Helm chart deploys a complete subconverter instance on Kubernetes with:
+
 - **Backend**: Subconverter API service for subscription conversion
-- **Frontend**: [sub-web-modify](https://github.com/youshandefeiyang/sub-web-modify) web UI with enhanced features including dark mode and hundreds of remote configurations
+- **Frontend**: [sub-web-modify](https://github.com/youshandefeiyang/sub-web-modify) web UI with enhanced features
+  including dark mode and hundreds of remote configurations
 
 The frontend is enabled by default, providing an out-of-the-box experience with a beautiful web interface.
 
@@ -19,7 +22,9 @@ This chart deploys two containers in the same Pod when frontend is enabled:
 
 ### Container Communication
 
-When both containers are enabled, they communicate via `localhost` since they share the same network namespace in the Pod:
+When both containers are enabled, they communicate via `localhost` since they share the same network namespace in the
+Pod:
+
 - Frontend → Backend: `http://localhost:25500`
 - This is configured automatically via the `API_URL` environment variable
 
@@ -58,44 +63,45 @@ The following table lists the configurable parameters of the subconverter chart:
 
 ### General Parameters
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `image.repository` | Container image repository | `tindy2013/subconverter` |
-| `image.tag` | Container image tag | `0.9.0` |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `replicaCount` | Number of replicas | `1` |
+| Parameter          | Description                | Default                      |
+|--------------------|----------------------------|------------------------------|
+| `image.repository` | Container image repository | `asdlokj1qpi23/subconverter` |
+| `image.tag`        | Container image tag        | `0.9.0`                      |
+| `image.pullPolicy` | Image pull policy          | `IfNotPresent`               |
+| `replicaCount`     | Number of replicas         | `1`                          |
 
 ### Frontend Configuration
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `frontend.enabled` | Enable frontend container | `true` |
-| `frontend.image.repository` | Frontend image repository | `youshandefeiyang/sub-web-modify` |
-| `frontend.image.tag` | Frontend image tag | `latest` |
-| `frontend.apiURL` | External API URL (empty = use local backend) | `""` |
-| `frontend.env` | Additional environment variables | `[]` |
-| `frontend.resources` | Frontend resource limits/requests | See below |
+| Parameter                   | Description                                  | Default                           |
+|-----------------------------|----------------------------------------------|-----------------------------------|
+| `frontend.enabled`          | Enable frontend container                    | `true`                            |
+| `frontend.image.repository` | Frontend image repository                    | `youshandefeiyang/sub-web-modify` |
+| `frontend.image.tag`        | Frontend image tag                           | `latest`                          |
+| `frontend.apiURL`           | External API URL (empty = use local backend) | `""`                              |
+| `frontend.env`              | Additional environment variables             | `[]`                              |
+| `frontend.resources`        | Frontend resource limits/requests            | See below                         |
 
 #### Frontend Resources
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `frontend.resources.limits.cpu` | Frontend CPU limit | `200m` |
-| `frontend.resources.limits.memory` | Frontend memory limit | `256Mi` |
-| `frontend.resources.requests.cpu` | Frontend CPU request | `50m` |
-| `frontend.resources.requests.memory` | Frontend memory request | `64Mi` |
+| Parameter                            | Description             | Default |
+|--------------------------------------|-------------------------|---------|
+| `frontend.resources.limits.cpu`      | Frontend CPU limit      | `200m`  |
+| `frontend.resources.limits.memory`   | Frontend memory limit   | `256Mi` |
+| `frontend.resources.requests.cpu`    | Frontend CPU request    | `50m`   |
+| `frontend.resources.requests.memory` | Frontend memory request | `64Mi`  |
 
 ### Service Configuration
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `service.type` | Kubernetes service type | `ClusterIP` |
-| `service.port` | Backend service port | `25500` |
-| `service.annotations` | Service annotations | `{}` |
+| Parameter             | Description             | Default     |
+|-----------------------|-------------------------|-------------|
+| `service.type`        | Kubernetes service type | `ClusterIP` |
+| `service.port`        | Backend service port    | `25500`     |
+| `service.annotations` | Service annotations     | `{}`        |
 
 #### Service Ports
 
 When frontend is enabled, the service exposes two ports:
+
 - **Port 80** (named `http`): Frontend web UI - Use this for accessing the web interface
 - **Port 25500** (named `backend`): Backend API - Use this for direct API access
 
@@ -115,16 +121,17 @@ kubectl port-forward svc/subconverter 25500:25500
 
 ### Ingress Configuration
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `ingress.enabled` | Enable ingress | `false` |
-| `ingress.className` | Ingress class name | `nginx` |
-| `ingress.hostname` | Ingress hostname | `subconverter.example.com` |
-| `ingress.tls` | Ingress TLS configuration | `[]` |
+| Parameter           | Description               | Default                    |
+|---------------------|---------------------------|----------------------------|
+| `ingress.enabled`   | Enable ingress            | `false`                    |
+| `ingress.className` | Ingress class name        | `nginx`                    |
+| `ingress.hostname`  | Ingress hostname          | `subconverter.example.com` |
+| `ingress.tls`       | Ingress TLS configuration | `[]`                       |
 
 #### Ingress Behavior
 
-By default, when frontend is enabled, the Ingress routes traffic to the frontend (port 80). Users can access the web UI through the Ingress hostname.
+By default, when frontend is enabled, the Ingress routes traffic to the frontend (port 80). Users can access the web UI
+through the Ingress hostname.
 
 #### Separate Ingress for Frontend and Backend
 
@@ -159,18 +166,18 @@ ingress:
 
 ### Configuration Mode
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `configMode` | Configuration mode (default/configmap/customImage) | `default` |
-| `configFiles` | Configuration files for configmap mode | `{}` |
+| Parameter     | Description                                        | Default   |
+|---------------|----------------------------------------------------|-----------|
+| `configMode`  | Configuration mode (default/configmap/customImage) | `default` |
+| `configFiles` | Configuration files for configmap mode             | `{}`      |
 
 ### Resources
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `resources.limits.cpu` | CPU limit | `500m` |
-| `resources.limits.memory` | Memory limit | `512Mi` |
-| `resources.requests.cpu` | CPU request | `100m` |
+| Parameter                   | Description    | Default |
+|-----------------------------|----------------|---------|
+| `resources.limits.cpu`      | CPU limit      | `500m`  |
+| `resources.limits.memory`   | Memory limit   | `512Mi` |
+| `resources.requests.cpu`    | CPU request    | `100m`  |
 | `resources.requests.memory` | Memory request | `128Mi` |
 
 ## Usage Examples
@@ -275,7 +282,27 @@ To keep backend-only configuration:
 helm upgrade subconverter charts/subconverter --set frontend.enabled=false
 ```
 
-**Important**: When upgrading from chart version 0.1.0 to 0.2.0+, the frontend is enabled by default. To maintain the previous behavior, explicitly set `frontend.enabled: false`.
+**Important**: When upgrading from chart version 0.1.0 to 0.2.0+, the frontend is enabled by default. To maintain the
+previous behavior, explicitly set `frontend.enabled: false`.
+
+### Upgrade from v0.2.0 to v0.3.0
+
+Starting from chart version 0.3.0, the default image repository has changed from `tindy2013/subconverter` to
+`asdlokj1qpi23/subconverter`. The new image is functionally equivalent to the previous one.
+
+To continue using the old image repository:
+
+```bash
+helm upgrade subconverter charts/subconverter --set image.repository=tindy2013/subconverter
+```
+
+To use the new image repository (default):
+
+```bash
+helm upgrade subconverter charts/subconverter
+```
+
+No other configuration changes are required.
 
 ## Uninstalling
 
