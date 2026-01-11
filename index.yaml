@@ -3,7 +3,7 @@ entries:
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-01-10T20:54:21.85626532Z"
+    created: "2026-01-11T12:16:37.56147972Z"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -16,7 +16,7 @@ entries:
       repository: https://charts.bitnami.com/bitnami
       version: 23.x.x
     description: A Helm chart for Kubernetes
-    digest: 6f5a3b1b9cb6ffed2ce9bb5b721fb10ba963498f1d33d7f62ba1dd3a604bbeab
+    digest: 2c0fff9c1c021574aac0c6320c212eed7cb17065420607490744540f7a6326c7
     name: claude-relay-service
     type: application
     urls:
@@ -25,7 +25,32 @@ entries:
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-01-10T20:54:21.8619912Z"
+    created: "2026-01-11T12:16:37.567010356Z"
+    description: A Helm chart for subconverter with sub-web frontend - subscription
+      conversion utility with web UI for various proxy formats
+    digest: d8e9c4f3821dd75cc03bb34528856521490c99f89e52eb89b65aa7625c232299
+    home: https://github.com/tindy2013/subconverter
+    keywords:
+    - subconverter
+    - subscription
+    - conversion
+    - proxy
+    - clash
+    - v2ray
+    - surge
+    - frontend
+    - web-ui
+    name: subconverter
+    sources:
+    - https://github.com/tindy2013/subconverter
+    - https://github.com/CareyWang/sub-web
+    type: application
+    urls:
+    - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
+    version: 1.0.0
+  - apiVersion: v2
+    appVersion: 0.9.0
+    created: "2026-01-11T12:16:37.565211819Z"
     description: A Helm chart for subconverter with sub-web-modify frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: a008630c8594a795eb4da9eb0207115b0d82f3a7e294afb6128678d9cd88709f
@@ -50,7 +75,7 @@ entries:
     version: 0.3.0
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-01-10T20:54:21.859120236Z"
+    created: "2026-01-11T12:16:37.5636886Z"
     description: A Helm chart for subconverter with sub-web-modify frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: 3598c0ee9860215dc14d2e6558a1277868f37936df50795c21682899a8dfdecb
@@ -73,4 +98,4 @@ entries:
     urls:
     - https://helm-chart.anubis.cafe/subconverter-0.2.0.tgz
     version: 0.2.0
-generated: "2026-01-10T20:54:21.835339767Z"
+generated: "2026-01-11T12:16:37.543042526Z"
