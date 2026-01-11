@@ -1,4 +1,44 @@
 {{- if .Values.ingress.enabled -}}
+{{- if .Values.ingress.hosts }}
+## 多域名模式
+## 为每个配置的域名创建独立的 Ingress 资源
+{{- range .Values.ingress.hosts }}
+{{- $host := . }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "subconverter.fullname" $ }}-{{ $host.name | replace "." "-" }}
+  labels:
+    {{- include "subconverter.labels" $ | nindent 4 }}
+  {{- with $host.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if $.Values.ingress.className }}
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- end }}
+  rules:
+  - host: {{ $host.name }}
+    http:
+      paths:
+      - path: {{ $host.path | default "/" }}
+        pathType: {{ $host.pathType | default "Prefix" }}
+        backend:
+          service:
+            name: {{ $host.serviceName | default (include "subconverter.frontend.fullname" $) }}
+            port:
+              number: {{ $host.servicePort }}
+  {{- with $host.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+{{- else if .Values.ingress.hostname -}}
+## 单域名模式 (向后兼容)
+## 使用现有的 hostname 配置创建单个 Ingress 资源
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -21,15 +61,16 @@ spec:
         pathType: {{ .Values.ingress.pathType }}
         backend:
           service:
-            name: {{ include "subconverter.fullname" . }}
+            name: {{ if .Values.frontend.enabled }}{{ include "subconverter.frontend.fullname" . }}{{ else }}{{ include "subconverter.backend.fullname" . }}{{ end }}
             port:
               {{- if .Values.frontend.enabled }}
               number: 80
               {{- else }}
-              number: {{ .Values.service.port }}
+              number: {{ .Values.backend.service.port }}
               {{- end }}
   {{- if .Values.ingress.tls }}
   tls:
     {{- toYaml .Values.ingress.tls | nindent 4 }}
   {{- end }}
+{{- end }}
 {{- end }}

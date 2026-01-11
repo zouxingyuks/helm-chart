@@ -1,19 +1,118 @@
 # Default values for subconverter.
 # This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
-# When autoscaling.enabled is true, this value is ignored and managed by HPA
-replicaCount: 1
-
-image:
-  repository: asdlokj1qpi23/subconverter
-  pullPolicy: IfNotPresent
-  tag: "0.9.0"  # Use specific version for production deployments; avoid using latest
-  # pullSecrets: []
-  # - name: myRegistryKeySecretName
+# Declare variables to be passed to your templates.
 
 nameOverride: ""
 fullnameOverride: ""
+
+# Backend configuration (subconverter)
+backend:
+  # Enable or disable the backend deployment
+  enabled: true
+
+  # When autoscaling.enabled is true, this value is ignored and managed by HPA
+  replicaCount: 1
+
+  image:
+    repository: asdlokj1qpi23/subconverter
+    pullPolicy: IfNotPresent
+    tag: "0.9.0"  # Use specific version for production deployments; avoid using latest
+    # pullSecrets: []
+    # - name: myRegistryKeySecretName
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  service:
+    type: ClusterIP
+    port: 25500
+    annotations: {}
+    clusterIP: ""
+
+  # Configuration mode: default, configmap, or customImage
+  # - default: Use built-in configuration from image
+  # - configmap: Mount configuration files from ConfigMap (requires configFiles to be populated)
+  # - customImage: Use custom image with embedded configuration
+  configMode: default
+
+  # Configuration files for configmap mode
+  # IMPORTANT: When configMode is "configmap", configFiles must be populated with at least one file
+  # These files will be mounted at /base/ in the container
+  configFiles: {}
+    # pref.yaml: |
+    #   # Your pref configuration in YAML format
+    #   # This will be converted to the format expected by subconverter
+    #
+    # ruleset/custom.txt: |
+    #   # Your custom rules
+    #
+    # snippets/my-snippet.txt: |
+    #   # Your custom snippets
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    # maxUnavailable: 1  # NOTE: minAvailable and maxUnavailable are mutually exclusive - only set one
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+  # Persistence configuration for storing custom configurations and rules
+  # WARNING: persistence.enabled cannot be used together with configMode "configmap"
+  # When enabled, a PVC will be created and mounted at /base/
+  persistence:
+    enabled: false
+    # existingClaim: ""  # If you want to reuse an existing PVC
+    storageClass: ""  # Default: cluster default
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+    annotations: {}
+
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    path: /version
+    livenessProbe:
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3
+    readinessProbe:
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3
 
 serviceAccount:
   # Specifies whether a service account should be created
@@ -24,28 +123,13 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
-podAnnotations: {}
-
-podSecurityContext: {}
-  # fsGroup: 2000
-
-securityContext: {}
-  # capabilities:
-  #   drop:
-  #   - ALL
-  # readOnlyRootFilesystem: true
-  # runAsNonRoot: true
-  # runAsUser: 1000
-
-service:
-  type: ClusterIP
-  port: 25500
-  annotations: {}
-  clusterIP: ""
-
 ingress:
   enabled: false
   className: "nginx"
+
+  # ===== 模式 1: 单域名模式 (向后兼容) =====
+  # 当 hosts 为空时,使用此配置
+  # 适用于简单的单一域名部署场景
   annotations: {}
     # kubernetes.io/ingress.class: nginx
   hostname: subconverter.example.com
@@ -56,111 +140,92 @@ ingress:
   #     - subconverter.example.com
   #   secretName: subconverter-tls
 
-# Configuration mode: default, configmap, or customImage
-# - default: Use built-in configuration from image
-# - configmap: Mount configuration files from ConfigMap (requires configFiles to be populated)
-# - customImage: Use custom image with embedded configuration
-configMode: default
-
-# Configuration files for configmap mode
-# IMPORTANT: When configMode is "configmap", configFiles must be populated with at least one file
-# These files will be mounted at /base/ in the container
-configFiles: {}
-  # pref.yaml: |
-  #   # Your pref configuration in YAML format
-  #   # This will be converted to the format expected by subconverter
+  # ===== 模式 2: 多域名模式 =====
+  # 当此数组非空时,优先使用此配置,忽略上面的单域名配置
+  # 支持为前端和后端配置不同的域名、TLS 证书和注解
+  hosts: []
+  # 示例配置:
+  # - name: frontend.example.com
+  #   serviceName: subconverter-frontend  # Service 名称
+  #   servicePort: 80  # Service 端口号(不是容器端口)
+  #   path: /
+  #   pathType: Prefix
+  #   annotations:
+  #     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  #   tls:
+  #   - secretName: frontend-tls
+  #     hosts:
+  #       - frontend.example.com
   #
-  # ruleset/custom.txt: |
-  #   # Your custom rules
-  #
-  # snippets/my-snippet.txt: |
-  #   # Your custom snippets
+  # - name: api.example.com
+  #   serviceName: subconverter-backend
+  #   servicePort: 25500
+  #   path: /
+  #   pathType: Prefix
+  #   annotations:
+  #     nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+  #   tls:
+  #   - secretName: api-tls
+  #     hosts:
+  #       - api.example.com
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
-podDisruptionBudget:
-  enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1  # NOTE: minAvailable and maxUnavailable are mutually exclusive - only set one
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-# Persistence configuration for storing custom configurations and rules
-# WARNING: persistence.enabled cannot be used together with configMode "configmap"
-# When enabled, a PVC will be created and mounted at /base/
-persistence:
-  enabled: false
-  # existingClaim: ""  # If you want to reuse an existing PVC
-  storageClass: ""  # Default: cluster default
-  size: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  annotations: {}
-
-# Health check configuration
-healthCheck:
-  enabled: true
-  path: /version
-  livenessProbe:
-    initialDelaySeconds: 30
-    periodSeconds: 30
-    timeoutSeconds: 10
-    successThreshold: 1
-    failureThreshold: 3
-  readinessProbe:
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 10
-    successThreshold: 1
-    failureThreshold: 3
-
-# Frontend container configuration (sub-web-modify)
+# Frontend container configuration (sub-web)
 # Provides a web UI for subscription conversion
 frontend:
   enabled: true  # Set to false to disable the frontend container
+
+  # When autoscaling.enabled is true, this value is ignored and managed by HPA
+  replicaCount: 1
+
   image:
-    repository: youshandefeiyang/sub-web-modify
+    repository: careywong/subweb
     tag: latest  # Use a specific version tag for production (e.g., v1.0.0)
     pullPolicy: IfNotPresent
     # pullSecrets: []
     # - name: myRegistryKeySecretName
 
   # API URL configuration for the frontend
-  # Leave empty to use the local backend (http://localhost:25500)
+  # Maps to VUE_APP_SUBCONVERTER_DEFAULT_BACKEND environment variable
+  # Leave empty to use the backend service (http://subconverter-backend:25500)
   # Set to an external URL to connect to a remote backend
   apiURL: ""  # Example: "https://subconverter-api.example.com"
 
+  # Vue.js environment variables for the frontend container
+  # Note: All Vue.js environment variables must start with VUE_APP_
+  # See: https://cli.vuejs.org/guide/mode-and-env.html#using-env-variables-in-client-side-code
+  projectUrl: "https://github.com/CareyWang/sub-web"  # VUE_APP_PROJECT
+  botLink: "https://t.me/subconverter_discuss"         # VUE_APP_BOT_LINK
+  useStorage: true                                      # VUE_APP_USE_STORAGE
+  cacheTTL: 86400                                       # VUE_APP_CACHE_TTL (in seconds)
+
+  # Backend release page link
+  backendRelease: "https://github.com/tindy2013/subconverter/actions"  # VUE_APP_BACKEND_RELEASE
+
+  # Remote configuration file URL
+  remoteConfig: "https://raw.githubusercontent.com/tindy2013/subconverter/master/base/config/example_external_config.ini"  # VUE_APP_SUBCONVERTER_REMOTE_CONFIG
+
+  # Advanced documentation link
+  advancedDoc: "https://github.com/tindy2013/subconverter/blob/master/README-cn.md#%E8%BF%9B%E9%98%B6%E9%93%BE%E6%8E%A5"  # VUE_APP_SUBCONVERTER_DOC_ADVANCED
+
+  # Short URL backend API (empty by default, user must configure)
+  myurlsApi: ""  # VUE_APP_MYURLS_API
+
+  # Configuration upload API (empty by default, user must configure)
+  configUploadApi: ""  # VUE_APP_CONFIG_UPLOAD_API
+
   # Additional environment variables for the frontend container
+  # These are added to the container as-is
   # Example:
-  # - name: NODE_ENV
-  #   value: production
+  # - name: VUE_APP_MYURLS_API
+  #   value: "https://suosuo.de/short"
+  # - name: VUE_APP_CONFIG_UPLOAD_API
+  #   value: "https://oss.wcc.best/upload"
   env: []
 
   # Container security context for frontend
-  securityContext:
-    capabilities:
-      drop:
-      - ALL
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    runAsUser: 1000
+  # Simplified to match original image behavior. The careywong/subweb image is designed
+  # to run as root with standard nginx configuration. Avoiding over-engineering.
+  securityContext: {}
 
   # Resource limits and requests for the frontend container
   resources:
@@ -170,6 +235,24 @@ frontend:
     requests:
       cpu: 50m
       memory: 64Mi
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+    # targetMemoryUtilizationPercentage: 80
+
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+    # maxUnavailable: 1
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
 
   # Health check configuration for frontend
   healthCheck:
