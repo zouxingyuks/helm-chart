@@ -1,9 +1,77 @@
 apiVersion: v1
 entries:
+  booklore:
+  - annotations:
+      artifacthub.io/category: database
+      artifacthub.io/containsSecurityUpdates: "false"
+      artifacthub.io/images: |
+        - name: booklore
+          image: ghcr.io/booklore-app/booklore:1.17.0
+      artifacthub.io/keywords: |
+        - digital library
+        - ebooks
+        - opds
+        - calibre alternative
+        - self-hosted
+        - book management
+        - kobo sync
+        - koreader sync
+      artifacthub.io/kubernetesVersion: '>=1.20.0-0'
+      artifacthub.io/license: GPL-3.0
+      artifacthub.io/links: |
+        - name: Documentation
+          url: https://booklore.org/docs
+        - name: Support
+          url: https://github.com/booklore-app/booklore/discussions
+        - name: Source Code
+          url: https://github.com/booklore-app/booklore
+        - name: Changelog
+          url: https://github.com/zouxingyuks/helm-chart/blob/main/charts/booklore/CHANGELOG.md
+      artifacthub.io/operator: "false"
+      artifacthub.io/prerelease: "false"
+      artifacthub.io/signKey: |
+        fingerprint: <YOUR_FINGERPRINT>
+        url: https://github.com/zouxingyuks/helm-chart
+    apiVersion: v2
+    appVersion: 1.17.0
+    created: "2026-01-21T17:15:50.852507564Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - bitnami-common
+      version: ~2.31.0
+    - alias: mariadb
+      condition: mariadb.enabled
+      name: mariadb
+      repository: https://charts.bitnami.com/bitnami
+      version: ~23.2.0
+    description: A Helm chart for BookLore - Self-hosted digital library with smart
+      shelves, auto metadata, and OPDS support
+    digest: 645014a0fec9624f1495653cf354ec0851545812976eaaefd3f8c0e3bfda3a34
+    home: https://booklore.org
+    keywords:
+    - booklore
+    - library
+    - ebooks
+    - opds
+    - digital-library
+    - calibre
+    maintainers:
+    - name: BookLore Community
+      url: https://github.com/booklore-app
+    name: booklore
+    sources:
+    - https://github.com/booklore-app/booklore
+    - https://github.com/booklore-app/booklore-docs
+    type: application
+    urls:
+    - booklore-0.0.1.tgz
+    version: 0.0.1
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-01-11T12:16:37.56147972Z"
+    created: "2026-01-21T17:15:50.869986859Z"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -20,12 +88,12 @@ entries:
     name: claude-relay-service
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
+    - claude-relay-service-0.1.0.tgz
     version: 0.1.0
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-01-11T12:16:37.567010356Z"
+    created: "2026-01-21T17:15:50.871821286Z"
     description: A Helm chart for subconverter with sub-web frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: d8e9c4f3821dd75cc03bb34528856521490c99f89e52eb89b65aa7625c232299
@@ -46,56 +114,6 @@ entries:
     - https://github.com/CareyWang/sub-web
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
+    - subconverter-1.0.0.tgz
     version: 1.0.0
-  - apiVersion: v2
-    appVersion: 0.9.0
-    created: "2026-01-11T12:16:37.565211819Z"
-    description: A Helm chart for subconverter with sub-web-modify frontend - subscription
-      conversion utility with web UI for various proxy formats
-    digest: a008630c8594a795eb4da9eb0207115b0d82f3a7e294afb6128678d9cd88709f
-    home: https://github.com/tindy2013/subconverter
-    keywords:
-    - subconverter
-    - subscription
-    - conversion
-    - proxy
-    - clash
-    - v2ray
-    - surge
-    - frontend
-    - web-ui
-    name: subconverter
-    sources:
-    - https://github.com/tindy2013/subconverter
-    - https://github.com/youshandefeiyang/sub-web-modify
-    type: application
-    urls:
-    - https://helm-chart.anubis.cafe/subconverter-0.3.0.tgz
-    version: 0.3.0
-  - apiVersion: v2
-    appVersion: 0.9.0
-    created: "2026-01-11T12:16:37.5636886Z"
-    description: A Helm chart for subconverter with sub-web-modify frontend - subscription
-      conversion utility with web UI for various proxy formats
-    digest: 3598c0ee9860215dc14d2e6558a1277868f37936df50795c21682899a8dfdecb
-    home: https://github.com/tindy2013/subconverter
-    keywords:
-    - subconverter
-    - subscription
-    - conversion
-    - proxy
-    - clash
-    - v2ray
-    - surge
-    - frontend
-    - web-ui
-    name: subconverter
-    sources:
-    - https://github.com/tindy2013/subconverter
-    - https://github.com/youshandefeiyang/sub-web-modify
-    type: application
-    urls:
-    - https://helm-chart.anubis.cafe/subconverter-0.2.0.tgz
-    version: 0.2.0
-generated: "2026-01-11T12:16:37.543042526Z"
+generated: "2026-01-21T17:15:50.82952823Z"

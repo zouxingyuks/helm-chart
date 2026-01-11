@@ -1,0 +1,86 @@
+# 生产环境配置示例
+
+# 增加副本数
+replicaCount: 2
+
+# 使用特定镜像版本
+image:
+  tag: "v1.17.0"
+  pullPolicy: IfNotPresent
+
+# 资源配置 (生产环境)
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+# 持久化存储 (生产环境)
+persistence:
+  data:
+    enabled: true
+    size: 50Gi
+    storageClass: fast-ssd
+  books:
+    enabled: true
+    size: 100Gi
+    storageClass: fast-ssd
+  bookdrop:
+    enabled: true
+    size: 10Gi
+    storageClass: fast-ssd
+
+# 启用 Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  hostname: "library.example.com"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+  tls:
+    enabled: true
+
+# 启用自动扩缩容
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+# 启用 Pod 中断预算
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# MariaDB 生产配置
+mariadb:
+  enabled: true
+  auth:
+    rootPassword: "change-me-to-secure-password"
+    password: "change-me-to-secure-password"
+  primary:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: fast-ssd
+
+# 安全配置
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# 健康检查 (生产环境)
+healthCheck:
+  enabled: true
+  initialDelaySeconds: 90
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# 时区配置
+env:
+  TZ: "Asia/Shanghai"
