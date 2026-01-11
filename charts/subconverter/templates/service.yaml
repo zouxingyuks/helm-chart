@@ -1,28 +1,46 @@
+---
+# Backend Service
+{{- if .Values.backend.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "subconverter.fullname" . }}
+  name: {{ include "subconverter.backend.fullname" . }}
   labels:
-    {{- include "subconverter.labels" . | nindent 4 }}
-  {{- with .Values.service.annotations }}
+    {{- include "subconverter.backend.labels" . | nindent 4 }}
+  {{- with .Values.backend.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  type: {{ .Values.service.type }}
-  {{- if and (eq .Values.service.type "ClusterIP") .Values.service.clusterIP }}
-  clusterIP: {{ .Values.service.clusterIP }}
+  type: {{ .Values.backend.service.type }}
+  {{- if and (eq .Values.backend.service.type "ClusterIP") .Values.backend.service.clusterIP }}
+  clusterIP: {{ .Values.backend.service.clusterIP }}
   {{- end }}
   ports:
-  {{- if .Values.frontend.enabled }}
-  - name: http
-    port: 80
-    targetPort: http
-    protocol: TCP
-  {{- end }}
   - name: backend
-    port: {{ .Values.service.port }}
-    targetPort: http
+    port: {{ .Values.backend.service.port }}
+    targetPort: {{ .Values.backend.service.port }}
     protocol: TCP
   selector:
-    {{- include "subconverter.selectorLabels" . | nindent 4 }}
+    {{- include "subconverter.backend.selectorLabels" . | nindent 4 }}
+{{- end }}
+
+---
+# Frontend Service
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "subconverter.frontend.fullname" . }}
+  labels:
+    {{- include "subconverter.frontend.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    {{- include "subconverter.frontend.selectorLabels" . | nindent 4 }}
+{{- end }}

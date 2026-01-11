@@ -1,0 +1,21 @@
+{{- if and .Values.frontend.enabled .Values.frontend.podDisruptionBudget.enabled }}
+{{- if and .Values.frontend.podDisruptionBudget.minAvailable .Values.frontend.podDisruptionBudget.maxUnavailable }}
+{{- fail "frontend.podDisruptionBudget.minAvailable and frontend.podDisruptionBudget.maxUnavailable are mutually exclusive. Only one can be set at a time." }}
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "subconverter.frontend.fullname" . }}
+  labels:
+    {{- include "subconverter.frontend.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "subconverter.frontend.selectorLabels" . | nindent 6 }}
+  {{- if .Values.frontend.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.frontend.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.frontend.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.frontend.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+{{- end }}

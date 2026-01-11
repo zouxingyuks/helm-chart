@@ -1,0 +1,109 @@
+{{- if .Values.backend.enabled }}
+{{- if and (eq .Values.backend.configMode "configmap") .Values.backend.persistence.enabled }}
+{{- fail "ERROR: configMode 'configmap' and persistence.enabled cannot both be true. Please enable only one configuration method." }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "subconverter.backend.fullname" . }}
+  labels:
+    {{- include "subconverter.backend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  # When autoscaling.enabled is true, replicas field is omitted and replicaCount is ignored
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "subconverter.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if eq .Values.backend.configMode "configmap" }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
+        {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "subconverter.backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.backend.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "subconverter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.backend.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}-backend
+        securityContext:
+          {{- toYaml .Values.backend.securityContext | nindent 12 }}
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 25500
+          protocol: TCP
+        {{- if .Values.backend.healthCheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.backend.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.backend.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthCheck.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthCheck.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.backend.healthCheck.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.backend.healthCheck.livenessProbe.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.backend.healthCheck.path }}
+            port: http
+          initialDelaySeconds: {{ .Values.backend.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.backend.healthCheck.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.backend.healthCheck.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.backend.healthCheck.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.backend.healthCheck.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 12 }}
+        {{- if or (eq .Values.backend.configMode "configmap") .Values.backend.persistence.enabled }}
+        volumeMounts:
+        {{- if eq .Values.backend.configMode "configmap" }}
+        - name: config
+          mountPath: /base
+        {{- end }}
+        {{- if .Values.backend.persistence.enabled }}
+        - name: data
+          mountPath: /base
+        {{- end }}
+        {{- end }}
+      volumes:
+      {{- if eq .Values.backend.configMode "configmap" }}
+      - name: config
+        configMap:
+          name: {{ include "subconverter.fullname" . }}-config
+      {{- end }}
+      {{- if .Values.backend.persistence.enabled }}
+      - name: data
+        {{- if .Values.backend.persistence.existingClaim }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.backend.persistence.existingClaim }}
+        {{- else }}
+        persistentVolumeClaim:
+          claimName: {{ include "subconverter.fullname" . }}-config
+        {{- end }}
+      {{- end }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,114 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "subconverter.frontend.fullname" . }}
+  labels:
+    {{- include "subconverter.frontend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.frontend.autoscaling.enabled }}
+  # When autoscaling.enabled is true, replicas field is omitted and replicaCount is ignored
+  replicas: {{ .Values.frontend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "subconverter.frontend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.frontend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "subconverter.frontend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.frontend.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "subconverter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.frontend.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}-frontend
+        securityContext:
+          {{- toYaml .Values.frontend.securityContext | nindent 12 }}
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        env:
+        # Vue.js requires all custom environment variables to start with VUE_APP_
+        # Only variables with this prefix will be available in the frontend app
+        - name: VUE_APP_SUBCONVERTER_DEFAULT_BACKEND
+          {{- if .Values.frontend.apiURL }}
+          value: {{ .Values.frontend.apiURL | quote }}
+          {{- else }}
+          # When apiURL is empty, frontend connects to backend via service
+          # Use backend service DNS name for cross-pod communication
+          value: {{ printf "http://%s:%d" (include "subconverter.backend.fullname" .) (int .Values.backend.service.port) | quote }}
+          {{- end }}
+        - name: VUE_APP_PROJECT
+          value: {{ .Values.frontend.projectUrl | default "https://github.com/CareyWang/sub-web" | quote }}
+        - name: VUE_APP_BOT_LINK
+          value: {{ .Values.frontend.botLink | default "https://t.me/subconverter_discuss" | quote }}
+        - name: VUE_APP_USE_STORAGE
+          {{- if kindIs "bool" .Values.frontend.useStorage }}
+          value: {{ .Values.frontend.useStorage | quote }}
+          {{- else }}
+          value: {{ .Values.frontend.useStorage | default true | quote }}
+          {{- end }}
+        - name: VUE_APP_CACHE_TTL
+          value: {{ .Values.frontend.cacheTTL | default 86400 | quote }}
+        - name: VUE_APP_BACKEND_RELEASE
+          value: {{ .Values.frontend.backendRelease | default "https://github.com/asdlokj1qpi233/subconverter" | quote }}
+        - name: VUE_APP_SUBCONVERTER_REMOTE_CONFIG
+          value: {{ .Values.frontend.remoteConfig | default "https://github.com/asdlokj1qpi233/subconverter/master/base/config/example_external_config.ini" | quote }}
+        - name: VUE_APP_SUBCONVERTER_DOC_ADVANCED
+          value: {{ .Values.frontend.advancedDoc | default "https://github.com/asdlokj1qpi233/subconverter/blob/master/README-cn.md#%E8%BF%9B%E9%98%B6%E9%93%BE%E6%8E%A5" | quote }}
+        - name: VUE_APP_MYURLS_API
+          value: {{ .Values.frontend.myurlsApi | quote }}
+        - name: VUE_APP_CONFIG_UPLOAD_API
+          value: {{ .Values.frontend.configUploadApi | quote }}
+        {{- with .Values.frontend.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.frontend.healthCheck.enabled }}
+        # Health check probes for the frontend container
+        # The frontend container should respond to HTTP requests on port 80
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthCheck.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthCheck.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthCheck.livenessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.frontend.healthCheck.livenessProbe.successThreshold }}
+          failureThreshold: {{ .Values.frontend.healthCheck.livenessProbe.failureThreshold }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: {{ .Values.frontend.healthCheck.readinessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.frontend.healthCheck.readinessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.frontend.healthCheck.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.frontend.healthCheck.readinessProbe.successThreshold }}
+          failureThreshold: {{ .Values.frontend.healthCheck.readinessProbe.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.frontend.resources | nindent 12 }}
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

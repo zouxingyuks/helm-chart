@@ -58,3 +58,61 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Backend fully qualified name
+*/}}
+{{- define "subconverter.backend.fullname" -}}
+{{- printf "%s-backend" (include "subconverter.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Frontend fully qualified name
+*/}}
+{{- define "subconverter.frontend.fullname" -}}
+{{- printf "%s-frontend" (include "subconverter.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Backend labels
+*/}}
+{{- define "subconverter.backend.labels" -}}
+helm.sh/chart: {{ include "subconverter.chart" . }}
+{{ include "subconverter.backend.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/component: backend
+{{- end }}
+
+{{/*
+Frontend labels
+*/}}
+{{- define "subconverter.frontend.labels" -}}
+helm.sh/chart: {{ include "subconverter.chart" . }}
+{{ include "subconverter.frontend.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/component: frontend
+{{- end }}
+
+{{/*
+Backend selector labels
+*/}}
+{{- define "subconverter.backend.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "subconverter.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: backend
+{{- end }}
+
+{{/*
+Frontend selector labels
+*/}}
+{{- define "subconverter.frontend.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "subconverter.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: frontend
+{{- end }}
