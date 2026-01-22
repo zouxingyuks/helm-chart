@@ -1,0 +1,16 @@
+# 最小配置示例 - 使用默认值快速部署
+
+# 使用外部数据库示例
+mariadb:
+  enabled: false
+
+externalDatabase:
+  host: "external-mariadb.example.com"
+  password: "your-secure-password"
+
+# 禁用持久化存储 (仅用于测试)
+persistence:
+  data:
+    enabled: false
+  books:
+    enabled: false
