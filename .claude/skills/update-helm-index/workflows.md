@@ -1,162 +1,306 @@
-# Update Helm Index - 详细工作流程
+# Update Helm Index - Detailed Workflow
 
-本文档提供更新 Helm Chart 仓库索引的详细执行步骤、场景说明和最佳实践。
+This document provides detailed execution steps, MCP tool integration, scenarios, and best practices for updating Helm Chart repository index.
 
-## 使用自动化脚本
+---
 
-本 skill 提供了自动化脚本来简化操作流程:
+## Use Automation Scripts
 
-### 1. 环境检查脚本
+This skill provides automation scripts to simplify the workflow:
+
+### 1. Environment Check Script
 ```bash
 bash .claude/skills/update-helm-index/scripts/check-env.sh
 ```
 
-验证所有前置条件,包括 Helm 版本、Git 配置、目录权限等。
+Verifies all prerequisites, including Helm version, Git configuration, directory permissions, etc.
 
-### 2. 一键更新脚本
+### 2. One-Click Update Script
 ```bash
-# 预览模式(推荐首次使用)
+# Preview mode (recommended for first use)
 bash .claude/skills/update-helm-index/scripts/update-index.sh --dry-run
 
-# 执行更新
+# Execute update
 bash .claude/skills/update-helm-index/scripts/update-index.sh
 
-# 自动推送到远程
+# Auto-push to remote
 bash .claude/skills/update-helm-index/scripts/update-index.sh --auto-push
 ```
 
-自动执行打包、索引更新、验证和 Git 提交的完整流程。
+Automates the complete workflow: packaging, index update, verification, and Git commit.
 
-### 3. 健康检查脚本
+### 3. Health Check Script
 ```bash
 bash .claude/skills/update-helm-index/scripts/health-check.sh
 ```
 
-定期验证仓库完整性,检查 digest、YAML 语法等。
+Periodically verify repository integrity, check digest, YAML syntax, etc.
 
-详细脚本说明请查看 [scripts/README.md](scripts/README.md)
+See [scripts/README.md](scripts/README.md) for detailed script documentation.
 
 ---
 
-## 完整执行流程
+## MCP-Driven Workflow
 
-### 步骤 1: 验证 Chart 打包状态
+Example of a complete workflow enhanced with MCP tools:
 
-**使用脚本快速检查:**
+```bash
+# 1. Use serena to analyze codebase
+mcp__serena__list_dir --relative_path "charts" --recursive false
+
+# 2. Use serena to find version changes
+mcp__serena__search_for_pattern \
+  --substring_pattern "version:" \
+  --relative_path "charts" \
+  --restrict_search_to_code_files false
+
+# 3. Fetch and compare with remote index
+curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+diff -u index.yaml /tmp/remote-index.yaml || echo "Differences detected"
+
+# 4. Use context7 to confirm correct commands
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "helm package command"
+
+# 5. Execute packaging
+helm package charts/*
+
+# 6. Use context7 to confirm index command
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "update helm repository index"
+
+# 7. Execute index update
+helm repo index . --url https://helm-chart.anubis.cafe
+
+# 8. Verify against remote
+diff -u index.yaml /tmp/remote-index.yaml
+
+# 9. Verify results
+bash scripts/health-check.sh
+```
+
+---
+
+## Complete Execution Flow
+
+### Step 1: Verify Environment
+
+**Quick check with script:**
 ```bash
 bash .claude/skills/update-helm-index/scripts/check-env.sh
 ```
 
-或手动检查当前目录中的所有 .tgz 包文件:
+**MCP Tool Recommendations:**
+
+Use serena to verify codebase structure:
+```bash
+# List charts directory
+mcp__serena__list_dir --relative_path "charts" --recursive false
+```
+
+Use context7 to query latest Helm version requirements:
+```bash
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "minimum helm version required"
+```
+
+**Manual Check Items:**
+- ✅ Helm >= 3.0.0
+- ✅ Git user info configured
+- ✅ Directory write permissions
+- ✅ Existing .tgz file status
+
+---
+
+### Step 2: Analyze Chart State
+
+**Check existing .tgz package files:**
 
 ```bash
 ls -lh *.tgz
 ```
 
-**预期输出:**
-
+**Expected Output:**
 ```
--rw-r--r-- 1 user user 15K Jan 10 10:30 subconverter-0.2.0.tgz
--rw-r--r-- 1 user user 12K Jan  8 15:20 claude-relay-service-1.0.1.tgz
+-rw-r--r-- 1 user user 15K Jan 10 10:30 subconverter-1.0.0.tgz
+-rw-r--r-- 1 user user 12K Jan  8 15:20 claude-relay-service-0.1.0.tgz
 ```
 
-**验证要点:**
+**MCP Tool Recommendations:**
 
-- ✅ 确认新版本包是否存在
-- ✅ 检查文件大小和修改时间
-- ✅ 识别需要删除的旧版本包
+Use serena to find all Chart.yaml files and analyze versions:
+```bash
+# Find all Chart.yaml
+mcp__serena__find_file --file_mask "Chart.yaml" --relative_path "charts"
+
+# Search for existing .tgz files
+mcp__serena__search_for_pattern \
+  --substring_pattern "\.tgz$" \
+  --relative_path "." \
+  --restrict_search_to_code_files false
+```
+
+Use sequential thinking to plan update strategy (multi-chart scenario):
+```bash
+mcp__sequential-thinking__sequentialthinking \
+  --thought "Found 3 Charts needing updates. Analyze dependencies between them to determine update order." \
+  --nextThoughtNeeded true \
+  --thoughtNumber 1 \
+  --totalThoughts 3
+```
+
+**Verification Points:**
+- ✅ Confirm new version packages exist
+- ✅ Check file size and modification time
+- ✅ Identify old version packages to delete
 
 ---
 
-### 步骤 2: 打包 Chart
+### Step 3: Check Remote Index (NEW)
 
-如果 Chart 源码有更新(Chart.yaml、模板、values等),需要先打包:
+**Before publishing, compare with remote repository:**
 
 ```bash
-# 打包所有 Chart
+# Fetch remote index.yaml
+curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+
+# Check if remote is accessible
+curl -s -o /dev/null -w "%{http_code}" https://helm-chart.anubis.cafe/index.yaml
+# Should return: 200
+
+# Compare local and remote
+diff -u index.yaml /tmp/remote-index.yaml
+
+# Check specific chart versions in remote
+yq '.charts.booklore[].version' /tmp/remote-index.yaml
+```
+
+**Why Check Remote Index:**
+- Detect version conflicts before publishing
+- Verify sync status
+- Identify orphaned entries
+- Avoid duplicate version issues
+
+**MCP Tool Recommendations:**
+
+Use sequential thinking to analyze version conflicts:
+```bash
+mcp__sequential-thinking__sequentialthinking \
+  --thought "Remote index has booklore-0.2.2 but local only has 0.0.1. This indicates version rollback or missing package files." \
+  --nextThoughtNeeded true \
+  --thoughtNumber 1 \
+  --totalThoughts 3
+```
+
+---
+
+### Step 4: Package Charts
+
+If Chart source has updates (Chart.yaml, templates, values, etc.), package first:
+
+```bash
+# Package all Charts
 helm package charts/*
 
-# 或者打包指定的 Chart
+# Or package specific Charts
 helm package charts/subconverter
 helm package charts/claude-relay-service
 ```
 
-**作用:**
+**MCP Tool Recommendations:**
 
-- 将 Chart 目录打包成 .tgz 文件
-- 自动验证 Chart 结构
-- 生成可发布的压缩包
+Use context7 to query packaging best practices:
+```bash
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "helm package command best practices and validation"
+```
 
-**输出示例:**
+Use serena to verify Chart structure:
+```bash
+# Get Chart structure overview
+mcp__serena__get_symbols_overview --relative_path "charts/subconverter/Chart.yaml"
+```
 
+**Purpose:**
+- Package Chart directory into .tgz file
+- Automatically verify Chart structure
+- Generate publishable compressed package
+
+**Expected Output:**
 ```
 Successfully packaged chart and saved it to:
-subconverter-0.2.0.tgz
+subconverter-1.0.0.tgz
 ```
 
-**验证打包结果:**
-
+**Verify packaging result:**
 ```bash
-# 验证包格式
-helm lint subconverter-0.2.0.tgz
+# Verify package format
+helm lint subconverter-1.0.0.tgz
 
-# 查看包内容
-tar -tzf subconverter-0.2.0.tgz | head -20
-```
-
-**预期输出:**
-
-```
-subconverter/Chart.yaml
-subconverter/values.yaml
-subconverter/templates/deployment.yaml
-subconverter/templates/service.yaml
-...
+# View package contents
+tar -tzf subconverter-1.0.0.tgz | head -20
 ```
 
 ---
 
-### 步骤 3: 重新生成 Helm 仓库索引
+### Step 5: Regenerate Helm Repository Index
 
-使用 Helm CLI 重新生成 index.yaml:
+Use Helm CLI to regenerate index.yaml:
 
 ```bash
 helm repo index . --url https://helm-chart.anubis.cafe
 ```
 
-**作用:**
+**MCP Tool Recommendations:**
 
-- 扫描目录中的所有 .tgz 文件
-- 自动计算每个包的 SHA256 digest
-- 更新 index.yaml 中的所有 chart 条目
-- 确保 index.yaml 与实际 .tgz 文件一致
+Use context7 to understand index file format:
+```bash
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "index.yaml file format and digest calculation"
+```
 
-**参数说明:**
+Use serena to search for old index files:
+```bash
+mcp__serena__search_for_pattern \
+  --substring_pattern "^index:" \
+  --relative_path "." \
+  --restrict_search_to_code_files false
+```
 
-- `.` - 当前目录(Helm 仓库根目录)
-- `--url` - Helm 仓库的公共访问 URL
-    - 本项目使用: `https://helm-chart.anubis.cafe`
-    - 根据实际部署环境调整
+**Purpose:**
+- Scan all .tgz files in directory
+- Automatically calculate SHA256 digest for each package
+- Update all chart entries in index.yaml
+- Ensure index.yaml matches actual .tgz files
 
-**输出示例:**
+**Parameter Description:**
+- `.` - Current directory (Helm repository root)
+- `--url` - Public access URL of Helm repository
+  - This project uses: `https://helm-chart.anubis.cafe`
+  - Adjust according to actual deployment environment
 
+**Expected Output:**
 ```
 Index file created successfully
 ```
 
 ---
 
-### 步骤 4: 验证索引更新
+### Step 6: Verify Index Update
 
-检查 index.yaml 是否正确更新:
+Check if index.yaml is correctly updated:
 
 ```bash
-# 查看特定 chart 的索引
+# View specific chart index
 grep -A 20 "subconverter:" index.yaml
 ```
 
-**预期输出:**
-
+**Expected Output:**
 ```yaml
 subconverter:
   - name: subconverter
@@ -166,284 +310,427 @@ subconverter:
     home: https://github.com/example/subconverter
     icon: https://example.com/icon.png
     urls:
-      - https://helm-chart.anubis.cafe/subconverter-0.2.0.tgz
-    version: 0.2.0
+      - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
+    version: 1.0.0
     annotations:
       artifacthub.io/changes: |
-        - Update to v0.2.0
+        - Update to v1.0.0
         - Fix bug in ...
 ```
 
-**验证清单:**
+**MCP Tool Recommendations:**
 
-- [ ] 版本号正确更新
-- [ ] URL 指向正确的 .tgz 文件
-- [ ] 时间戳为最新
-- [ ] digest 值已重新计算
-- [ ] 描述和元数据正确
+Use serena to verify index file:
+```bash
+# Read index.yaml structure
+mcp__serena__get_symbols_overview --relative_path "index.yaml"
+```
+
+Use sequential thinking to diagnose verification issues:
+```bash
+mcp__sequential-thinking__sequentialthinking \
+  --thought "Verification found digest mismatch. Analyze possible causes: .tgz file corrupted or index generation error." \
+  --nextThoughtNeeded true \
+  --thoughtNumber 1 \
+  --totalThoughts 3
+```
+
+**Verify Against Remote:**
+```bash
+# Compare new local index with remote
+diff -u /tmp/remote-index.yaml index.yaml
+
+# Check if new version appears
+yq '.charts.subconverter[].version' index.yaml
+```
+
+**Verification Checklist:**
+- [ ] Version number correctly updated
+- [ ] URL points to correct .tgz file
+- [ ] Timestamp is current
+- [ ] Digest value recalculated
+- [ ] Description and metadata correct
+
+**Use health check script:**
+```bash
+bash .claude/skills/update-helm-index/scripts/health-check.sh
+```
 
 ---
 
-### 步骤 5: Git 提交更新
+### Step 7: Git Commit Update
 
-将更新后的文件提交到 Git:
+Commit updated files to Git:
 
 ```bash
-# 添加更新的文件
+# Add updated files
 git add *.tgz index.yaml
 
-# 检查状态
+# Check status
 git status
 
-# 提交变更
-git commit -m "chore: 更新 subconverter 到 v0.2.0 并刷新 Helm 索引
+# Commit changes
+git commit -m "chore: update subconverter to v1.0.0 and refresh Helm index
 
-- 更新 subconverter Chart 从 0.1.0 到 0.2.0
-- 添加新功能: 支持多订阅源
-- 修复: 修复配置文件解析错误
-- 重新生成 index.yaml 以反映最新的 .tgz 包"
+- Update subconverter Chart from 0.2.0 to 1.0.0
+- Add new feature: support multiple subscriptions
+- Fix: fix config file parsing error
+- Regenerate index.yaml to reflect latest .tgz packages"
 ```
 
-**提交文件包括:**
+**MCP Tool Recommendations:**
 
-- 新的 .tgz 包文件
-- 更新后的 index.yaml
-- 可能包含其他已修改的 .tgz 文件
-
-**提交信息模板:**
-
+Use serena to find files referencing Chart (if documentation needs update):
+```bash
+# Find files referencing old version
+mcp__serena__search_for_pattern \
+  --substring_pattern "0.2.0" \
+  --relative_path "." \
+  --restrict_search_to_code_files false
 ```
-chore: 更新 [chart-name] 到 v[version] 并刷新 Helm 索引
 
-- 更新 [chart-name] Chart 从 [old-version] 到 [new-version]
-- [主要变更说明]
-- 重新生成 index.yaml 以反映最新的 .tgz 包
+**Commit files include:**
+- New .tgz package files
+- Updated index.yaml
+- Possibly other modified .tgz files
+
+**Commit message template:**
+```
+chore: update [chart-name] to v[version] and refresh Helm index
+
+- Update [chart-name] Chart from [old-version] to [new-version]
+- [Main change description]
+- Regenerate index.yaml to reflect latest .tgz packages
 ```
 
 ---
 
-### 步骤 6: 推送到远程仓库 (可选)
+### Step 8: Push to Remote Repository (Optional)
 
 ```bash
 git push
 ```
 
-**⚠️ 注意:** 此步骤需谨慎,确认无误后再推送
+**⚠️ Note:** Be cautious with this step, confirm everything is correct before pushing.
 
 ---
 
-## 常见场景
+## Common Scenarios
 
-### 场景 1: 发布新版本 Chart
+### Scenario 1: Publish New Chart Version
 
-**情况:** 开发了新版本的功能,需要发布
+**Situation:** Developed new version features, need to publish
 
-**操作流程:**
+**Workflow:**
 
-1. 更新 `charts/subconverter/Chart.yaml` 中的版本号
+1. Update version number in `charts/subconverter/Chart.yaml`
    ```yaml
-   version: 0.2.0  # 从 0.1.0 更新
+   version: 1.0.0  # Update from 0.2.0
    ```
-2. 更新 Chart 模板、values 等文件
-3. 打包新版本:
+2. Update Chart templates, values, and other files
+
+3. **Check remote index first:**
+   ```bash
+   curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+   yq '.charts.subconverter[].version' /tmp/remote-index.yaml
+   ```
+
+4. **Use MCP tools to verify:**
+   ```bash
+   # Use serena to find all files needing update
+   mcp__serena__find_referencing_symbols \
+     --name_path "Chart.yaml/version" \
+     --relative_path "charts/subconverter"
+   ```
+
+5. Package new version:
    ```bash
    helm package charts/subconverter
    ```
-4. 运行完整流程更新索引
-5. 推送到 Git 仓库
 
-**验证:**
+6. Run complete workflow to update index
 
+7. Push to Git repository
+
+**Verify:**
 ```bash
 helm search repo anubis/subconverter --versions
 ```
 
 ---
 
-### 场景 2: 索引过期检查
+### Scenario 2: Index Out of Sync
 
-**情况:** 定期维护,检查索引是否最新
+**Situation:** Periodic maintenance, check if index is current
 
-**操作流程:**
+**Workflow:**
 
-1. 对比 index.yaml 中的版本与实际 .tgz 文件
+1. **Fetch and compare with remote:**
    ```bash
-   # 列出实际包
-   ls *.tgz | sed 's/.*-//' | sed 's/.tgz//'
-
-   # 列出索引中的版本
-   grep -A 3 "version:" index.yaml | grep "version:"
+   curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+   diff -u index.yaml /tmp/remote-index.yaml
    ```
-2. 如有不匹配,运行此 skill 的完整流程
-3. 验证更新结果
+
+2. **Use serena to analyze index status:**
+   ```bash
+   # Search for .tgz files
+   mcp__serena__search_for_pattern \
+     --substring_pattern "\.tgz$" \
+     --relative_path "." \
+     --restrict_search_to_code_files false
+
+   # Read index.yaml
+   mcp__serena__get_symbols_overview --relative_path "index.yaml"
+   ```
+
+3. **Use sequential thinking to compare versions:**
+   ```bash
+   mcp__sequential-thinking__sequentialthinking \
+     --thought "Comparing .tgz file list and versions in index.yaml. Found booklore-0.2.2.tgz exists but not recorded in index." \
+     --nextThoughtNeeded true \
+     --thoughtNumber 1 \
+     --totalThoughts 2
+   ```
+
+4. If mismatch found, run this skill's complete workflow
+
+5. Verify update results
 
 ---
 
-### 场景 3: 多 Chart 更新
+### Scenario 3: Multi-Chart Update
 
-**情况:** 同时更新多个 Chart
+**Situation:** Update multiple Charts simultaneously
 
-**操作流程:**
+**Workflow:**
 
-1. 更新各个 Chart 的 `Chart.yaml` 和相关文件
-2. 打包所有更新的 Chart:
+1. **Fetch remote index to check current state:**
+   ```bash
+   curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+   ```
+
+2. **Use sequential thinking to plan update strategy:**
+   ```bash
+   mcp__sequential-thinking__sequentialthinking \
+     --thought "Need to update 3 Charts. Analyze dependencies to determine order: 1) Charts with no dependencies, 2) Charts that are depended upon." \
+     --nextThoughtNeeded true \
+     --thoughtNumber 1 \
+     --totalThoughts 4
+   ```
+
+3. **Use serena to find all Charts needing update:**
+   ```bash
+   mcp__serena__list_dir --relative_path "charts" --recursive false
+   ```
+
+4. Update each Chart's `Chart.yaml` and related files
+
+5. Package all updated Charts:
    ```bash
    helm package charts/*
    ```
-3. 运行完整流程更新所有索引:
+
+6. Run complete workflow to update all indexes:
    ```bash
    helm repo index . --url https://helm-chart.anubis.cafe
    ```
-4. 一次性提交所有变更:
+
+7. Commit all changes at once:
    ```bash
    git add *.tgz index.yaml
-   git commit -m "chore: 批量更新 Charts 并刷新索引
+   git commit -m "chore: batch update Charts and refresh index
 
-   - 更新 subconverter 到 0.2.0
-   - 更新 claude-relay-service 到 1.1.0
-   - 重新生成 index.yaml"
+   - Update subconverter to 1.0.0
+   - Update claude-relay-service to 1.1.0
+   - Regenerate index.yaml"
+   ```
+
+8. **Verify against remote before pushing:**
+   ```bash
+   diff -u /tmp/remote-index.yaml index.yaml
    ```
 
 ---
 
-### 场景 4: 删除旧版本
+### Scenario 4: Delete Old Versions
 
-**情况:** 清理不再支持的旧版本
+**Situation:** Clean up unsupported old versions
 
-**操作流程:**
+**Workflow:**
 
-1. 删除旧的 .tgz 包:
+1. **Check remote index first:**
    ```bash
-   rm subconverter-0.1.0.tgz
+   yq '.charts.subconverter[].version' /tmp/remote-index.yaml
    ```
-2. 删除旧的 index.yaml:
+
+2. **Use serena to identify old versions:**
+   ```bash
+   mcp__serena__search_for_pattern \
+     --substring_pattern "0.2.0\.tgz" \
+     --relative_path "." \
+     --restrict_search_to_code_files false
+   ```
+
+3. Delete old .tgz packages:
+   ```bash
+   rm subconverter-0.2.0.tgz
+   ```
+
+4. Delete old index.yaml:
    ```bash
    rm index.yaml
    ```
-3. 重新生成索引(只包含现有的 .tgz):
+
+5. Regenerate index (only includes existing .tgz):
    ```bash
    helm repo index . --url https://helm-chart.anubis.cafe
    ```
-4. 提交变更:
+
+6. Commit changes:
    ```bash
    git add index.yaml
-   git commit -m "chore: 移除 subconverter v0.1.0,仅保留最新版本"
+   git commit -m "chore: remove subconverter v0.2.0, keep only latest version"
    ```
 
 ---
 
-### 场景 5: 修复索引 URL
+### Scenario 5: Fix Index URL
 
-**情况:** 仓库 URL 变更或配置错误
+**Situation:** Repository URL changed or configuration error
 
-**操作流程:**
+**Workflow:**
 
-1. 删除旧的 index.yaml:
+1. **Use context7 to query correct index format:**
+   ```bash
+   mcp__plugin_context7_context7__query-docs \
+     --libraryId "/helm/helm" \
+     --query "helm repo index URL format"
+   ```
+
+2. Delete old index.yaml:
    ```bash
    rm index.yaml
    ```
-2. 使用正确的 URL 重新生成:
+
+3. Regenerate with correct URL:
    ```bash
    helm repo index . --url https://helm-chart.anubis.cafe
    ```
-3. 验证 URL 正确:
+
+4. **Use serena to verify URL:**
    ```bash
-   grep "urls:" index.yaml
+   mcp__serena__search_for_pattern \
+     --substring_pattern "https://helm-chart.anubis.cafe" \
+     --relative_path "index.yaml" \
+     --restrict_search_to_code_files false
    ```
-4. 提交变更
+
+5. Commit changes
 
 ---
 
-## 多环境处理
+## Multi-Environment Handling
 
-### 开发环境
+### Development Environment
 
 ```bash
-# 使用开发环境 URL
+# Use development environment URL
 helm repo index . --url http://localhost:8080
 ```
 
-### 生产环境
+### Production Environment
 
 ```bash
-# 使用生产环境 URL
+# Use production environment URL
 helm repo index . --url https://helm-chart.anubis.cafe
 ```
 
-### 测试环境
+### Test Environment
 
 ```bash
-# 使用测试环境 URL
+# Use test environment URL
 helm repo index . --url https://test-helm.example.com
 ```
 
 ---
 
-## 批量操作技巧
+## Batch Operation Tips
 
-### 打包所有 Charts
+### Package All Charts
 
 ```bash
-# 方法 1: 打包 charts 目录下的所有 Chart
+# Method 1: Package all Charts under charts directory
 helm package charts/*
 
-# 方法 2: 查找所有 Chart 目录并打包
+# Method 2: Find all Chart directories and package
 find charts -name "Chart.yaml" -exec dirname {} \; | xargs -I {} helm package {}
 ```
 
-### 验证所有包
+**MCP Enhanced:**
+```bash
+# Use serena to find all Charts
+mcp__serena__find_file --file_mask "Chart.yaml" --relative_path "charts"
+```
+
+### Verify All Packages
 
 ```bash
-# 验证所有 .tgz 包
+# Verify all .tgz packages
 for file in *.tgz; do
   echo "Validating $file..."
   helm lint "$file"
 done
 ```
 
-### 查看索引摘要
+### View Index Summary
 
 ```bash
-# 查看索引中的所有 Chart
+# View all Charts in index
 grep "^  [a-z-]*:$" index.yaml | sed 's/://g'
 
-# 查看每个 Chart 的版本数量
+# View version count for each Chart
 grep "^  [a-z-]*:$" -A 100 index.yaml | grep "version:" | wc -l
 ```
 
 ---
 
-## 性能优化
+## Performance Optimization
 
-### 大型仓库优化
+### Large Repository Optimization
 
-对于包含大量 Chart 的仓库:
+For repositories with many Charts:
 
 ```bash
-# 仅更新变更的包
+# Only update changed packages
 helm repo index . --url https://helm-chart.anubis.cafe --merge index.yaml
 ```
 
-**参数说明:**
+**Parameter Description:**
+- `--merge`: Merge into existing index instead of complete rewrite
+- Pros: Faster, less computation
+- Cons: May retain entries for deleted packages
 
-- `--merge`: 合并到现有索引,而不是完全重写
-- 优点: 更快,减少计算量
-- 缺点: 可能保留已删除包的条目
+**Use context7 to understand merge option:**
+```bash
+mcp__plugin_context7_context7__query-docs \
+  --libraryId "/helm/helm" \
+  --query "helm repo index merge option"
+```
 
-### 并行打包
+### Parallel Packaging
 
 ```bash
-# 使用 GNU parallel 并行打包
+# Use GNU parallel for parallel packaging
 ls charts/* | parallel -j 4 helm package
 ```
 
 ---
 
-## 自动化建议
+## Automation Recommendations
 
-### CI/CD 集成
+### CI/CD Integration
 
-在 CI/CD 流程中自动化索引更新:
+Automate index updates in CI/CD workflow:
 
 ```yaml
 # .github/workflows/release-chart.yml
@@ -463,6 +750,10 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v3
 
+      - name: Fetch Remote Index
+        run: |
+          curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+
       - name: Package Chart
         run: |
           helm package charts/*
@@ -471,19 +762,72 @@ jobs:
         run: |
           helm repo index . --url https://helm-chart.anubis.cafe
 
+      - name: Verify Against Remote
+        run: |
+          diff -u /tmp/remote-index.yaml index.yaml || true
+
       - name: Commit Changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add *.tgz index.yaml
-          git commit -m "chore: 自动更新 Helm 索引"
+          git commit -m "chore: auto-update Helm index"
           git push
 ```
 
+**Use MCP tools to enhance CI/CD:**
+- Use serena to analyze changes when PR is created
+- Use sequential thinking to diagnose issues when build fails
+- Use context7 to periodically update best practices
+
 ---
 
-## 参考文档
+## Error Handling
 
-- [Helm 仓库最佳实践](https://helm.sh/docs/topics/chart_repository/)
-- [Helm Index 文件格式](https://helm.sh/docs/topics/charts/#the-index-file)
-- [Artifact Hub 集成](https://artifacthub.io/docs/topics/repositories/#helm-charts)
+### Use sequential thinking to Diagnose Issues
+
+When encountering errors, use sequential thinking for systematic analysis:
+
+```bash
+mcp__sequential-thinking__sequentialthinking \
+  --thought "helm repo index command failed with error code 1. Analyze possible causes: 1) .tgz file corrupted, 2) disk space insufficient, 3) permission issues." \
+  --nextThoughtNeeded true \
+  --thoughtNumber 1 \
+  --totalThoughts 5
+```
+
+### Common Errors and Solutions
+
+**Error: "no such file or directory"**
+- Use serena to verify file existence:
+  ```bash
+  mcp__serena__search_for_pattern \
+    --substring_pattern "\.tgz$" \
+    --relative_path "." \
+    --restrict_search_to_code_files false
+  ```
+
+**Error: "invalid YAML"**
+- Use context7 to query YAML format requirements:
+  ```bash
+  mcp__plugin_context7_context7__query-docs \
+    --libraryId "/helm/helm" \
+    --query "index.yaml YAML format validation"
+  ```
+
+**Error: "version conflict with remote"**
+- Check remote index before publishing:
+  ```bash
+  curl -s https://helm-chart.anubis.cafe/index.yaml -o /tmp/remote-index.yaml
+  yq '.charts[].[] | select(.name == "booklore") | .version' /tmp/remote-index.yaml
+  ```
+
+---
+
+## Reference Documentation
+
+- [Helm Repository Best Practices](https://helm.sh/docs/topics/chart_repository/)
+- [Helm Index File Format](https://helm.sh/docs/topics/charts/#the-index-file)
+- [Artifact Hub Integration](https://artifacthub.io/docs/topics/repositories/#helm-charts)
+- [MCP-GUIDE.md](MCP-GUIDE.md) - Detailed MCP tool usage guide
+- [troubleshooting.md](troubleshooting.md) - Troubleshooting guide
