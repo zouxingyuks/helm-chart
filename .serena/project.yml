@@ -88,7 +88,34 @@ excluded_tools: []
 
 # initial prompt for the project. It will always be given to the LLM upon activating the project
 # (contrary to the memories, which are loaded on demand).
-initial_prompt: "这是一个 Helm Chart 仓库项目，包含多个 Kubernetes 应用的 Helm Chart 包。\n\n项目结构:\n- charts/ 目录包含各个应用的 Helm Chart\n- 每个 Chart 包含 Chart.yaml、values.yaml 和 templates/ 目录\n- templates/ 目录包含 Kubernetes 资源模板（Deployment、Service、ConfigMap 等）\n- charts/index.yaml 是 Helm 仓库索引文件\n\n工作流程:\n- 修改 Chart 后需要更新版本号（Chart.yaml 和 values.yaml）\n- 运行 helm package 打包 Chart\n- 运行 helm repo index 更新 index.yaml 索引\n- 提交变更到 git 仓库\n\n注意事项:\n- values.yaml 定义应用配置的默认值\n- templates/ 中的模板使用 Helm Template 语法（{{ }}）\n- 遵循 Helm Chart 最佳实践和 Kubernetes 资源命名规范"
-
+initial_prompt: "这是一个 Helm Chart 仓库项目，包含多个 Kubernetes 应用的 Helm Chart 包。\n\n项目结构:\n\
+  - charts/ 目录包含各个应用的 Helm Chart\n- 每个 Chart 包含 Chart.yaml、values.yaml 和 templates/
+  目录\n- templates/ 目录包含 Kubernetes 资源模板（Deployment、Service、ConfigMap 等）\n- charts/index.yaml
+  是 Helm 仓库索引文件\n\n工作流程:\n- 修改 Chart 后需要更新版本号（Chart.yaml 和 values.yaml）\n- 运行 helm
+  package 打包 Chart\n- 运行 helm repo index 更新 index.yaml 索引\n- 提交变更到 git 仓库\n\n注意事项:\n\
+  - values.yaml 定义应用配置的默认值\n- templates/ 中的模板使用 Helm Template 语法（{{ }}）\n- 遵循 Helm
+  Chart 最佳实践和 Kubernetes 资源命名规范"
+# the name by which the project can be referenced within Serena
 project_name: "helm-chart"
+
+# list of tools to include that would otherwise be disabled (particularly optional tools that are disabled by default)
 included_optional_tools: []
+
+# list of mode names to that are always to be included in the set of active modes
+# The full set of modes to be activated is base_modes + default_modes.
+# If the setting is undefined, the base_modes from the global configuration (serena_config.yml) apply.
+# Otherwise, this setting overrides the global configuration.
+# Set this to [] to disable base modes for this project.
+# Set this to a list of mode names to always include the respective modes for this project.
+base_modes:
+
+# list of mode names that are to be activated by default.
+# The full set of modes to be activated is base_modes + default_modes.
+# If the setting is undefined, the default_modes from the global configuration (serena_config.yml) apply.
+# Otherwise, this overrides the setting from the global configuration (serena_config.yml).
+# This setting can, in turn, be overridden by CLI parameters (--mode).
+default_modes:
+
+# fixed set of tools to use as the base tool set (if non-empty), replacing Serena's default set of tools.
+# This cannot be combined with non-empty excluded_tools or included_optional_tools.
+fixed_tools: []
