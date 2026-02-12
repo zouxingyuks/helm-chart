@@ -1,5 +1,22 @@
 apiVersion: v1
 entries:
+  axonhub:
+  - apiVersion: v2
+    appVersion: latest
+    created: "2026-02-12T21:37:23.850988193+08:00"
+    description: A Helm chart for deploying AxonHub on Kubernetes with MySQL
+    digest: 22b3c73cb08110e29ce3312c3b59dc921d45e713796c895afc4d4426cd2d68d3
+    home: https://github.com/looplj/axonhub
+    maintainers:
+    - email: team@axonhub.ai
+      name: AxonHub Team
+    name: axonhub
+    sources:
+    - https://github.com/looplj/axonhub
+    type: application
+    urls:
+    - https://helm-chart.anubis.cafe/axonhub-0.1.0.tgz
+    version: 0.1.0
   booklore:
   - annotations:
       artifacthub.io/category: database
@@ -34,7 +51,7 @@ entries:
         url: https://github.com/zouxingyuks/helm-chart
     apiVersion: v2
     appVersion: 1.17.0
-    created: "2026-01-21T17:15:50.852507564Z"
+    created: "2026-02-12T21:37:23.865752779+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -66,12 +83,12 @@ entries:
     - https://github.com/booklore-app/booklore-docs
     type: application
     urls:
-    - booklore-0.0.1.tgz
+    - https://helm-chart.anubis.cafe/booklore-0.0.1.tgz
     version: 0.0.1
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-01-21T17:15:50.869986859Z"
+    created: "2026-02-12T21:37:23.889007735+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -88,12 +105,12 @@ entries:
     name: claude-relay-service
     type: application
     urls:
-    - claude-relay-service-0.1.0.tgz
+    - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
     version: 0.1.0
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-01-21T17:15:50.871821286Z"
+    created: "2026-02-12T21:37:23.890563623+08:00"
     description: A Helm chart for subconverter with sub-web frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: d8e9c4f3821dd75cc03bb34528856521490c99f89e52eb89b65aa7625c232299
@@ -114,6 +131,6 @@ entries:
     - https://github.com/CareyWang/sub-web
     type: application
     urls:
-    - subconverter-1.0.0.tgz
+    - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-01-21T17:15:50.82952823Z"
+generated: "2026-02-12T21:37:23.848470244+08:00"
