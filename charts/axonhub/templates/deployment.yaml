@@ -30,11 +30,11 @@ spec:
       serviceAccountName: {{ include "axonhub.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.axonhub.podSecurityContext | nindent 8 }}
-      {{- if .Values.mysql.enabled }}
+      {{- if .Values.postgresql.enabled }}
       initContainers:
-        - name: wait-for-mysql
+        - name: wait-for-postgres
           image: busybox:1.36
-          command: ['sh', '-c', 'until nc -z {{ include "axonhub.mysql.serviceName" . }} 3306; do echo waiting for mysql; sleep 2; done;']
+          command: ['sh', '-c', 'until nc -z {{ include "axonhub.postgresql.serviceName" . }} 5432; do echo waiting for postgresql; sleep 2; done;']
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}

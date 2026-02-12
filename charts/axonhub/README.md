@@ -1,6 +1,6 @@
 # AxonHub Helm Chart
 
-This Helm chart deploys AxonHub on Kubernetes with MySQL database.
+This Helm chart deploys AxonHub on Kubernetes with PostgreSQL database.
 
 ## Prerequisites
 
@@ -41,22 +41,22 @@ The following table lists the configurable parameters of the AxonHub chart and t
 | `axonhub.persistence.enabled` | Enable persistence using PVC | `false` |
 | `axonhub.persistence.size` | PVC storage request size | `10Gi` |
 
-### MySQL Parameters
+### PostgreSQL Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `mysql.enabled` | Deploy MySQL chart | `true` |
-| `mysql.replicaCount` | Number of MySQL replicas | `1` |
-| `mysql.image.repository` | MySQL image repository | `mysql` |
-| `mysql.image.tag` | MySQL image tag | `8.0-alpine` |
-| `mysql.auth.rootPassword` | MySQL root password | `axonhub_password` |
-| `mysql.auth.username` | MySQL user name | `axonhub` |
-| `mysql.auth.password` | MySQL user password | `axonhub_password` |
-| `mysql.auth.database` | MySQL database name | `axonhub` |
-| `mysql.service.type` | Kubernetes service type | `ClusterIP` |
-| `mysql.service.port` | MySQL service port | `3306` |
-| `mysql.primary.persistence.enabled` | Enable MySQL persistence | `true` |
-| `mysql.primary.persistence.size` | PVC storage request size | `8Gi` |
+| `postgresql.enabled` | Deploy PostgreSQL chart | `true` |
+| `postgresql.replicaCount` | Number of PostgreSQL replicas | `1` |
+| `postgresql.image.repository` | PostgreSQL image repository | `postgres` |
+| `postgresql.image.tag` | PostgreSQL image tag | `16-alpine` |
+| `postgresql.auth.postgresPassword` | PostgreSQL admin password | `axonhub_password` |
+| `postgresql.auth.username` | PostgreSQL user name | `axonhub` |
+| `postgresql.auth.password` | PostgreSQL user password | `axonhub_password` |
+| `postgresql.auth.database` | PostgreSQL database name | `axonhub` |
+| `postgresql.service.type` | Kubernetes service type | `ClusterIP` |
+| `postgresql.service.port` | PostgreSQL service port | `5432` |
+| `postgresql.primary.persistence.enabled` | Enable PostgreSQL persistence | `true` |
+| `postgresql.primary.persistence.size` | PVC storage request size | `8Gi` |
 
 ### Ingress Parameters
 
@@ -70,29 +70,29 @@ The following table lists the configurable parameters of the AxonHub chart and t
 
 ## Database Configuration Options
 
-### Using Internal MySQL (Default)
+### Using Internal PostgreSQL (Default)
 
-The chart includes MySQL by default. This is suitable for:
+The chart includes PostgreSQL by default. This is suitable for:
 - Development environments
 - Small production deployments
 - When you want managed database within Kubernetes
 
 ```yaml
-mysql:
+postgresql:
   enabled: true  # Default setting
 ```
 
 ### Using External Database
 
-Disable internal MySQL and configure external database connection:
+Disable internal PostgreSQL and configure external database connection:
 
 ```yaml
-mysql:
+postgresql:
   enabled: false
 
 axonhub:
   env:
-    AXONHUB_DB_DSN: "username:password@tcp(external-db-host:3306)/database?charset=utf8mb4&parseTime=True&loc=Local"
+    AXONHUB_DB_DSN: "postgres://username:password@external-db-host:5432/database?sslmode=require"
 ```
 
 ## Production Deployment
@@ -104,9 +104,9 @@ For production deployments, you should:
 axonhub:
   dbPassword: "your-secure-password"
 
-mysql:
+postgresql:
   auth:
-    rootPassword: "your-secure-mysql-password"
+    postgresPassword: "your-secure-postgres-password"
     password: "your-secure-password"
 ```
 
@@ -117,7 +117,7 @@ axonhub:
     enabled: true
     size: 20Gi
 
-mysql:
+postgresql:
   primary:
     persistence:
       enabled: true
@@ -135,7 +135,7 @@ axonhub:
       cpu: 1000m
       memory: 1Gi
 
-mysql:
+postgresql:
   resources:
     limits:
       cpu: 1000m
@@ -195,7 +195,7 @@ curl http://localhost:8090/health
 
 Common issues and solutions:
 
-1. **Database connection failed**: Check MySQL pod status and logs
+1. **Database connection failed**: Check PostgreSQL pod status and logs
 2. **Insufficient resources**: Adjust resource requests/limits in values.yaml
 3. **Persistent volume issues**: Ensure your cluster has PV provisioner configured
 4. **Ingress not working**: Verify ingress controller is installed and configured
@@ -204,7 +204,7 @@ Common issues and solutions:
 
 The chart deploys:
 - AxonHub application as a Deployment
-- MySQL database as a StatefulSet
+- PostgreSQL database as a StatefulSet
 - Services for both components
 - Optional ingress for external access
 - Persistent volumes for data persistence

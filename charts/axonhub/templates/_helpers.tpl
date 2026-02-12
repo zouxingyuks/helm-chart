@@ -62,15 +62,15 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-MySQL fullname
+PostgreSQL fullname
 */}}
-{{- define "axonhub.mysql.fullname" -}}
-{{- printf "%s-mysql" (include "axonhub.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- define "axonhub.postgresql.fullname" -}}
+{{- printf "%s-postgresql" (include "axonhub.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-MySQL service name
+PostgreSQL service name
 */}}
-{{- define "axonhub.mysql.serviceName" -}}
-{{- include "axonhub.mysql.fullname" . }}
+{{- define "axonhub.postgresql.serviceName" -}}
+{{- include "axonhub.postgresql.fullname" . }}
 {{- end }}
