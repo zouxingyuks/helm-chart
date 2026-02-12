@@ -46,10 +46,12 @@ spec:
             {{- toYaml .Values.mysql.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.mysql.resources | nindent 12 }}
+          {{- if .Values.mysql.primary.persistence.enabled }}
           volumeMounts:
             - name: data
               mountPath: /var/lib/mysql
               subPath: mysql-data
+          {{- end }}
       {{- with .Values.mysql.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -62,6 +64,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+  {{- if .Values.mysql.primary.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -74,4 +77,5 @@ spec:
         {{- if .Values.mysql.primary.persistence.storageClass }}
         storageClassName: {{ .Values.mysql.primary.persistence.storageClass }}
         {{- end }}
+  {{- end }}
 {{- end }}
