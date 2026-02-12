@@ -17,9 +17,9 @@ axonhub:
   
   # Environment variables for AxonHub
   env:
-    AXONHUB_DB_DIALECT: mysql
+    AXONHUB_DB_DIALECT: postgres
     # Full database connection string - customize this for your environment
-    AXONHUB_DB_DSN: "axonhub:axonhub_password@tcp(axonhub-mysql:3306)/axonhub?parseTime=true&multiStatements=true&charset=utf8mb4"
+    AXONHUB_DB_DSN: postgres://axonhub:axonhub_password@axonhub-postgresql:5432/axonhub?sslmode=disable
   
   # Service configuration
   service:
@@ -76,27 +76,27 @@ axonhub:
     accessModes:
       - ReadWriteOnce
 
-# MySQL database configuration
-mysql:
+# PostgreSQL database configuration
+postgresql:
   enabled: true
   replicaCount: 1
   
   image:
-    repository: mysql
-    tag: "8.0"
+    repository: postgres
+    tag: "16-alpine"
     pullPolicy: IfNotPresent
   
   # Database credentials
   auth:
-    rootPassword: "axonhub_password"  # Should be overridden in production
-    database: "axonhub"
+    postgresPassword: "axonhub_password"  # Should be overridden in production
     username: "axonhub"
     password: "axonhub_password"  # Should be overridden in production
+    database: "axonhub"
   
   # Service configuration
   service:
     type: ClusterIP
-    port: 3306
+    port: 5432
   
   # Resource limits
   resources:
@@ -120,9 +120,9 @@ mysql:
   livenessProbe:
     exec:
       command:
-        - sh
-        - -c
-        - mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD
+        - pg_isready
+        - -U
+        - axonhub
     initialDelaySeconds: 30
     periodSeconds: 10
     timeoutSeconds: 5
@@ -131,9 +131,9 @@ mysql:
   readinessProbe:
     exec:
       command:
-        - sh
-        - -c
-        - mysqladmin ping -h localhost -u root -p$MYSQL_ROOT_PASSWORD
+        - pg_isready
+        - -U
+        - axonhub
     initialDelaySeconds: 5
     periodSeconds: 10
     timeoutSeconds: 5
