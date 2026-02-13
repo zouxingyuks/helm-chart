@@ -3,9 +3,9 @@ entries:
   axonhub:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-02-12T21:37:23.850988193+08:00"
-    description: A Helm chart for deploying AxonHub on Kubernetes with MySQL
-    digest: 22b3c73cb08110e29ce3312c3b59dc921d45e713796c895afc4d4426cd2d68d3
+    created: "2026-02-13T00:09:05.267902558+08:00"
+    description: A Helm chart for deploying AxonHub on Kubernetes
+    digest: 61a4b059e4c632315e6026c439553a6ba001fa38fd9ad0cc2272c652fb5fbf4a
     home: https://github.com/looplj/axonhub
     maintainers:
     - email: team@axonhub.ai
@@ -51,7 +51,7 @@ entries:
         url: https://github.com/zouxingyuks/helm-chart
     apiVersion: v2
     appVersion: 1.17.0
-    created: "2026-02-12T21:37:23.865752779+08:00"
+    created: "2026-02-13T00:09:05.277911763+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -88,7 +88,7 @@ entries:
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-02-12T21:37:23.889007735+08:00"
+    created: "2026-02-13T00:09:05.301626956+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -110,7 +110,7 @@ entries:
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-02-12T21:37:23.890563623+08:00"
+    created: "2026-02-13T00:09:05.303173609+08:00"
     description: A Helm chart for subconverter with sub-web frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: d8e9c4f3821dd75cc03bb34528856521490c99f89e52eb89b65aa7625c232299
@@ -133,4 +133,4 @@ entries:
     urls:
     - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-02-12T21:37:23.848470244+08:00"
+generated: "2026-02-13T00:09:05.266055145+08:00"
