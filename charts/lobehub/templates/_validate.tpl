@@ -20,17 +20,17 @@
 {{- end }}
 
 {{/*
-规则 3: database.internal.enabled=true 时仍需显式提供 database.url（指向内置服务）
+规则 3: database.url 必需（internal/external 模式均需提供）
 */}}
-{{- if and .Values.database.internal.enabled (not .Values.database.url) }}
-{{- fail "ERROR: database.url is required even when database.internal.enabled=true. The internal PostgreSQL sub-chart does not auto-inject DATABASE_URL. Please provide the connection string pointing to the internal service, e.g. --set database.url=\"postgresql://lobechat:password@<release>-postgresql:5432/lobechat\"." }}
+{{- if not .Values.database.url }}
+{{- fail "ERROR: database.url is required. Please provide the PostgreSQL connection string, e.g. --set database.url=\"postgresql://lobechat:password@host:5432/lobechat\"." }}
 {{- end }}
 
 {{/*
-规则 4: redis.internal.enabled=true 时仍需显式提供 redis.url（指向内置服务）
+规则 4: redis.url 必需（internal/external 模式均需提供）
 */}}
-{{- if and .Values.redis.internal.enabled (not .Values.redis.url) }}
-{{- fail "ERROR: redis.url is required even when redis.internal.enabled=true. The internal Redis sub-chart does not auto-inject REDIS_URL. Please provide the connection string pointing to the internal service, e.g. --set redis.url=\"redis://:password@<release>-redis-master:6379/0\"." }}
+{{- if not .Values.redis.url }}
+{{- fail "ERROR: redis.url is required. Please provide the Redis connection string, e.g. --set redis.url=\"redis://:password@host:6379/0\"." }}
 {{- end }}
 
 {{/*
