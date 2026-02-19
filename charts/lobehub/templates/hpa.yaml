@@ -1,0 +1,37 @@
+{{- if .Values.autoscaling.enabled }}
+{{- $cpuTarget := .Values.autoscaling.targetCPUUtilizationPercentage }}
+{{- $memoryTarget := .Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- if not (or $cpuTarget $memoryTarget) }}
+{{- fail "ERROR: autoscaling metrics are empty. Set autoscaling.targetCPUUtilizationPercentage or autoscaling.targetMemoryUtilizationPercentage when autoscaling.enabled=true." }}
+{{- end }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "lobehub.fullname" . }}
+  labels:
+    {{- include "lobehub.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "lobehub.fullname" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    {{- if $cpuTarget }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $cpuTarget }}
+    {{- end }}
+    {{- if $memoryTarget }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $memoryTarget }}
+    {{- end }}
+{{- end }}

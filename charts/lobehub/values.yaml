@@ -1,0 +1,176 @@
+# Default values for lobehub.
+# This is a YAML-formatted file.
+# Declare variables to be passed to your templates.
+
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+image:
+  repository: lobehub/lobe-chat
+  pullPolicy: IfNotPresent
+  tag: ""  # Defaults to appVersion if empty
+
+imagePullSecrets: []
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 3210
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+  hostname: lobehub.example.com
+  path: /
+  pathType: Prefix
+  tls: []
+  # - hosts:
+  #     - lobehub.example.com
+  #   secretName: lobehub-tls
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# =============================================================================
+# 认证配置（敏感值 → Secret）
+# =============================================================================
+auth:
+  # -- 使用已有 Secret 代替自动创建；设置后下方敏感字段被忽略
+  # Secret 中的 key 必须与环境变量名一致（AUTH_SECRET, ACCESS_CODE 等）
+  existingSecret: ""
+  # -- NextAuth 签名密钥（必需，无默认值）
+  authSecret: ""
+  # -- 访问码，多个用逗号分隔
+  accessCode: ""
+  # -- 密钥保险库加密密钥
+  keyVaultsSecret: ""
+
+# =============================================================================
+# 数据库配置（敏感值 → Secret）
+# =============================================================================
+database:
+  # -- 启用内部 PostgreSQL（通过子 Chart 部署）
+  internal:
+    enabled: false
+  # -- PostgreSQL 连接字符串，例如 postgresql://<username>:<password>@host:5432/lobechat
+  # ⚠ internal 模式同样需要显式提供此字段（指向内置服务），例如：
+  #   postgresql://lobechat:password@<release>-postgresql:5432/lobechat
+  url: ""
+
+# =============================================================================
+# Redis 配置（敏感值 → Secret）
+# =============================================================================
+redis:
+  # -- 启用内部 Redis（通过子 Chart 部署）
+  internal:
+    enabled: false
+  # -- Redis 连接字符串，例如 redis://:<password>@host:6379/0
+  # ⚠ internal 模式同样需要显式提供此字段（指向内置服务），例如：
+  #   redis://:password@<release>-redis-master:6379/0
+  url: ""
+
+# =============================================================================
+# PostgreSQL 子 Chart 配置（database.internal.enabled=true 时生效）
+# 完整参数参考：https://github.com/bitnami/charts/tree/main/bitnami/postgresql
+# =============================================================================
+postgresql:
+  auth:
+    # -- PostgreSQL 管理员密码（必需，无默认值）
+    postgresPassword: ""
+    # -- 应用数据库名称
+    database: lobechat
+    # -- 应用数据库用户
+    username: lobechat
+    # -- 应用数据库密码（必需，无默认值）
+    password: ""
+  primary:
+    persistence:
+      size: 8Gi
+
+# =============================================================================
+# S3 对象存储配置
+# =============================================================================
+s3:
+  # -- S3 Access Key ID（敏感 → Secret）
+  accessKeyId: ""
+  # -- S3 Secret Access Key（敏感 → Secret）
+  secretAccessKey: ""
+  # -- S3 Bucket 名称（非敏感 → ConfigMap）
+  bucket: ""
+  # -- S3 Endpoint URL（非敏感 → ConfigMap）
+  endpoint: ""
+  # -- S3 Region（非敏感 → ConfigMap）
+  region: ""
+  # -- S3 公开访问域名（非敏感 → ConfigMap）
+  publicDomain: ""
+
+# =============================================================================
+# 非敏感应用配置（→ ConfigMap）
+# =============================================================================
+config:
+  # -- 应用公开 URL，例如 https://lobehub.example.com
+  appUrl: ""
+  # -- NextAuth URL，留空则自动使用 appUrl
+  nextAuthUrl: ""
+
+# =============================================================================
+# 额外环境变量（直接注入容器，优先级最高）
+# =============================================================================
+# -- 额外环境变量列表
+# 示例:
+#   - name: CUSTOM_VAR
+#     value: "custom-value"
+#   - name: SECRET_FROM_REF
+#     valueFrom:
+#       secretKeyRef:
+#         name: my-secret
+#         key: secret-key
+extraEnv: []
+
+# -- 额外 envFrom 引用列表
+# 示例:
+#   - secretRef:
+#       name: extra-secret
+#   - configMapRef:
+#       name: extra-config
+extraEnvFrom: []

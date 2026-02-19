@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lobehub.fullname" . }}-config
+  labels:
+    {{- include "lobehub.labels" . | nindent 4 }}
+data:
+  {{- if .Values.config.appUrl }}
+  APP_URL: {{ .Values.config.appUrl | quote }}
+  {{- end }}
+  {{- if or .Values.config.nextAuthUrl .Values.config.appUrl }}
+  NEXT_AUTH_URL: {{ .Values.config.nextAuthUrl | default .Values.config.appUrl | quote }}
+  {{- end }}
+  {{- if .Values.s3.bucket }}
+  S3_BUCKET: {{ .Values.s3.bucket | quote }}
+  {{- end }}
+  {{- if .Values.s3.endpoint }}
+  S3_ENDPOINT: {{ .Values.s3.endpoint | quote }}
+  {{- end }}
+  {{- if .Values.s3.region }}
+  S3_REGION: {{ .Values.s3.region | quote }}
+  {{- end }}
+  {{- if .Values.s3.publicDomain }}
+  S3_PUBLIC_DOMAIN: {{ .Values.s3.publicDomain | quote }}
+  {{- end }}
