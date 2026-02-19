@@ -40,4 +40,11 @@
 {{- fail "ERROR: ingress.hostname is required when ingress.enabled is true. Please provide it using --set ingress.hostname=<your-domain>." }}
 {{- end }}
 
+{{/*
+规则 6: autoscaling 启用时至少提供一个 metric target
+*/}}
+{{- if and .Values.autoscaling.enabled (not (or .Values.autoscaling.targetCPUUtilizationPercentage .Values.autoscaling.targetMemoryUtilizationPercentage)) }}
+{{- fail "ERROR: autoscaling requires at least one metric target when autoscaling.enabled=true. Please set autoscaling.targetCPUUtilizationPercentage or autoscaling.targetMemoryUtilizationPercentage." }}
+{{- end }}
+
 {{- end -}}

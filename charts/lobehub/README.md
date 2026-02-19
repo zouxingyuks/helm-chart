@@ -156,8 +156,8 @@ redis:
 | `autoscaling.enabled` | 启用 HorizontalPodAutoscaler | `false` |
 | `autoscaling.minReplicas` | HPA 最小副本数 | `1` |
 | `autoscaling.maxReplicas` | HPA 最大副本数 | `100` |
-| `autoscaling.targetCPUUtilizationPercentage` | CPU 目标利用率（%） | `80` |
-| `autoscaling.targetMemoryUtilizationPercentage` | Memory 目标利用率（%），未设置则不渲染 | — |
+| `autoscaling.targetCPUUtilizationPercentage` | CPU 目标利用率（%），启用 autoscaling 时需与 memory 二选一至少设置一个 | `80` |
+| `autoscaling.targetMemoryUtilizationPercentage` | Memory 目标利用率（%），启用 autoscaling 时需与 CPU 二选一至少设置一个 | — |
 | `image.repository` | 镜像仓库 | `lobehub/lobe-chat` |
 | `image.tag` | 镜像标签，空则使用 appVersion | `""` |
 | `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
