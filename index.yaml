@@ -3,7 +3,7 @@ entries:
   axonhub:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-02-13T00:09:05.267902558+08:00"
+    created: "2026-02-19T14:44:32.092405845+08:00"
     description: A Helm chart for deploying AxonHub on Kubernetes
     digest: 61a4b059e4c632315e6026c439553a6ba001fa38fd9ad0cc2272c652fb5fbf4a
     home: https://github.com/looplj/axonhub
@@ -51,7 +51,7 @@ entries:
         url: https://github.com/zouxingyuks/helm-chart
     apiVersion: v2
     appVersion: 1.17.0
-    created: "2026-02-13T00:09:05.277911763+08:00"
+    created: "2026-02-19T14:44:32.107121242+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -88,7 +88,7 @@ entries:
   claude-relay-service:
   - apiVersion: v2
     appVersion: 1.16.0
-    created: "2026-02-13T00:09:05.301626956+08:00"
+    created: "2026-02-19T14:44:32.129811277+08:00"
     dependencies:
     - name: common
       repository: https://charts.bitnami.com/bitnami
@@ -107,10 +107,42 @@ entries:
     urls:
     - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
     version: 0.1.0
+  lobehub:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2026-02-19T14:44:32.162762149+08:00"
+    dependencies:
+    - condition: database.internal.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: ~18.4.0
+    - condition: redis.internal.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: ~25.3.0
+    description: A Helm chart for LobeHub - modern AI chat framework with multi-model
+      support
+    digest: c102300315fc2553d478d57a5484e401356a5ca8e83550bb9c2a9bebbbd82aff
+    home: https://github.com/lobehub/lobe-chat
+    keywords:
+    - lobehub
+    - lobe-chat
+    - ai
+    - chatbot
+    - llm
+    - openai
+    - claude
+    name: lobehub
+    sources:
+    - https://github.com/lobehub/lobe-chat
+    type: application
+    urls:
+    - https://helm-chart.anubis.cafe/lobehub-0.1.0.tgz
+    version: 0.1.0
   subconverter:
   - apiVersion: v2
     appVersion: 0.9.0
-    created: "2026-02-13T00:09:05.303173609+08:00"
+    created: "2026-02-19T14:44:32.164020884+08:00"
     description: A Helm chart for subconverter with sub-web frontend - subscription
       conversion utility with web UI for various proxy formats
     digest: d8e9c4f3821dd75cc03bb34528856521490c99f89e52eb89b65aa7625c232299
@@ -133,4 +165,4 @@ entries:
     urls:
     - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-02-13T00:09:05.266055145+08:00"
+generated: "2026-02-19T14:44:32.089574567+08:00"
