@@ -1,0 +1,22 @@
+{{- if .Values.podDisruptionBudget.enabled }}
+apiVersion: {{ include "common.capabilities.policy.apiVersion" . }}
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "deeplx.fullname" . }}
+  namespace: {{ include "deeplx.namespace" . | quote }}
+  labels:
+    {{- include "deeplx.labels" . | nindent 4 }}
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "deeplx.selectorLabels" . | nindent 6 }}
+  {{- if not (kindIs "invalid" .Values.podDisruptionBudget.minAvailable) }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+{{- end }}
