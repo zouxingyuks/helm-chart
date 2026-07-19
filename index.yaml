@@ -15,7 +15,7 @@ entries:
     - https://github.com/looplj/axonhub
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/axonhub-0.1.0.tgz
+    - https://helm-chart.snubisks.com/axonhub-0.1.0.tgz
     version: 0.1.0
   booklore:
   - annotations:
@@ -83,7 +83,7 @@ entries:
     - https://github.com/booklore-app/booklore-docs
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/booklore-0.0.1.tgz
+    - https://helm-chart.snubisks.com/booklore-0.0.1.tgz
     version: 0.0.1
   claude-relay-service:
   - apiVersion: v2
@@ -105,7 +105,30 @@ entries:
     name: claude-relay-service
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/claude-relay-service-0.1.0.tgz
+    - https://helm-chart.snubisks.com/claude-relay-service-0.1.0.tgz
+    version: 0.1.0
+  deeplx:
+  - apiVersion: v2
+    appVersion: 1.2.2
+    created: "2026-07-19T10:56:10.979773253+08:00"
+    dependencies:
+    - name: common
+      repository: https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami
+      version: 2.10.1
+    description: A Helm chart for DeepLX, a DeepL-compatible translation API
+    digest: 29e0f449a772d01ae92c7454494e4c002ba5cb186b2a0187e4e41d6f440a69d4
+    home: https://github.com/OwO-Network/DeepLX
+    keywords:
+    - deeplx
+    - translation
+    - api
+    kubeVersion: '>=1.20.0-0'
+    name: deeplx
+    sources:
+    - https://github.com/OwO-Network/DeepLX
+    type: application
+    urls:
+    - https://helm-chart.snubisks.com/deeplx-0.1.0.tgz
     version: 0.1.0
   lobehub:
   - apiVersion: v2
@@ -137,7 +160,7 @@ entries:
     - https://github.com/lobehub/lobe-chat
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/lobehub-0.1.0.tgz
+    - https://helm-chart.snubisks.com/lobehub-0.1.0.tgz
     version: 0.1.0
   subconverter:
   - apiVersion: v2
@@ -163,6 +186,6 @@ entries:
     - https://github.com/CareyWang/sub-web
     type: application
     urls:
-    - https://helm-chart.anubis.cafe/subconverter-1.0.0.tgz
+    - https://helm-chart.snubisks.com/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-02-19T14:44:32.089574567+08:00"
+generated: "2026-07-19T10:56:10.976935608+08:00"

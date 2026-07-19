@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled }}
+{{- range $index, $host := .Values.ingress.hosts }}
+{{- if gt $index 0 }}
+---
+{{- end }}
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" $ }}
+kind: Ingress
+metadata:
+  name: {{ include "deeplx.ingressName" (dict "hostname" $host.hostname "context" $) }}
+  namespace: {{ include "deeplx.namespace" $ | quote }}
+  labels:
+    {{- include "deeplx.labels" $ | nindent 4 }}
+  {{- if or $host.annotations $.Values.commonAnnotations }}
+  annotations:
+    {{- include "common.tplvalues.merge" (dict "values" (list $host.annotations $.Values.commonAnnotations) "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and $.Values.ingress.className (eq (include "common.ingress.supportsIngressClassname" $) "true") }}
+  ingressClassName: {{ $.Values.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ $host.hostname | quote }}
+      http:
+        paths:
+          - path: {{ default "/" $host.path | quote }}
+            {{- if eq (include "common.ingress.supportsPathType" $) "true" }}
+            pathType: {{ default "Prefix" $host.pathType }}
+            {{- end }}
+            backend:
+              {{- include "common.ingress.backend" (dict "serviceName" (include "deeplx.fullname" $) "servicePort" "http" "context" $) | nindent 14 }}
+  {{- with $host.tls }}
+  tls:
+    {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

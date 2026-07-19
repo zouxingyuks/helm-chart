@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "deeplx.fullname" . }}-test-connection
+  namespace: {{ include "deeplx.namespace" . | quote }}
+  labels:
+    {{- include "deeplx.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 4 }}
+    {{- end }}
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  {{- include "common.images.renderPullSecrets" (dict "images" (list .Values.test.image) "context" $) | nindent 2 }}
+  containers:
+    - name: curl
+      image: {{ include "common.images.image" (dict "imageRoot" .Values.test.image "global" .Values.global) | quote }}
+      imagePullPolicy: {{ .Values.test.image.pullPolicy }}
+      command:
+        - curl
+      args:
+        - --fail
+        - --silent
+        - --show-error
+        - http://{{ include "deeplx.fullname" . }}:{{ .Values.service.port }}/

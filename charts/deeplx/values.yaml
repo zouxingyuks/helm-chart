@@ -1,0 +1,164 @@
+# DeepLX Helm Chart 默认配置。
+
+# -- Bitnami Common 全局配置。
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  kubeVersion: ""
+
+# -- 覆盖 Chart 资源名称。
+nameOverride: ""
+fullnameOverride: ""
+# -- 覆盖资源命名空间。
+namespaceOverride: ""
+# -- 添加到资源 metadata 的公共标签；不会进入 selector。
+commonLabels: {}
+# -- 添加到资源 metadata 的公共注解。
+commonAnnotations: {}
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: missuo/deeplx
+  tag: v1.2.2
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: false
+
+podAnnotations: {}
+# -- Pod 附加标签；不会进入 Deployment 或 Service selector。
+podLabels: {}
+
+podSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  runAsNonRoot: true
+  fsGroup: 1001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  runAsNonRoot: true
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 1188
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  hosts: []
+  # - hostname: deeplx.example.com
+  #   annotations: {}
+  #   path: /
+  #   pathType: Prefix
+  #   tls:
+  #     - secretName: deeplx-tls
+  #       hosts:
+  #         - deeplx.example.com
+
+# -- DeepLX 认证配置。existingSecret 与下方 inline 值互斥。
+auth:
+  existingSecret:
+    name: ""
+    keyMapping:
+      token: TOKEN
+      dlSession: DL_SESSION
+      proxy: PROXY
+  token: ""
+  dlSession: ""
+  proxy: ""
+
+# -- 额外环境变量，支持 Helm 模板表达式；不得覆盖 IP、PORT、TOKEN、DL_SESSION 或 PROXY。
+extraEnvVars: []
+# -- 额外 ConfigMap 名称，通过 envFrom 引入。
+extraEnvVarsCM: ""
+# -- 额外 Secret 名称，通过 envFrom 引入。
+extraEnvVarsSecret: ""
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 6
+  successThreshold: 1
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 1
+  failureThreshold: 6
+  successThreshold: 1
+
+# -- 完整自定义探针；非空时覆盖对应默认 TCP 探针。
+customReadinessProbe: {}
+customLivenessProbe: {}
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: null
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: null
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 25%
+
+terminationGracePeriodSeconds: 30
+
+nodeSelector: {}
+tolerations: []
+# -- soft、hard 或空字符串。
+podAffinityPreset: ""
+# -- soft、hard 或空字符串；默认不添加调度约束。
+podAntiAffinityPreset: ""
+nodeAffinityPreset:
+  type: ""
+  key: ""
+  values: []
+affinity: {}
+topologySpreadConstraints: []
+priorityClassName: ""
+schedulerName: ""
+
+extraVolumes: []
+extraVolumeMounts: []
+
+# -- Helm test 仅对 Service 根路径执行连通性 smoke test，不代表语义健康检查。
+test:
+  image:
+    registry: docker.io
+    repository: curlimages/curl
+    tag: 8.14.1
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
