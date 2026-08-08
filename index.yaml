@@ -3,9 +3,9 @@ entries:
   axonhub:
   - apiVersion: v2
     appVersion: latest
-    created: "2026-02-19T14:44:32.092405845+08:00"
+    created: "2026-08-02T16:40:29.926528606+08:00"
     description: A Helm chart for deploying AxonHub on Kubernetes
-    digest: 61a4b059e4c632315e6026c439553a6ba001fa38fd9ad0cc2272c652fb5fbf4a
+    digest: 189f0f407599439fde319f6a64b53f108516e8f0d86deb088298632fb6f055d7
     home: https://github.com/looplj/axonhub
     maintainers:
     - email: team@axonhub.ai
@@ -188,4 +188,4 @@ entries:
     urls:
     - https://helm-chart.snubisks.com/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-07-19T10:56:10.976935608+08:00"
+generated: "2026-08-02T16:40:29.924974658+08:00"
