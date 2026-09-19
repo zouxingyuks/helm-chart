@@ -14,5 +14,7 @@ Existing Prometheus requires remote-write receiver and exemplar-storage enabled.
 Existing Loki requires TSDB schema v13 and allow_structured_metadata=true.
 {{ end -}}
 
-Default mode is a self-contained five-component installation.
+Default mode includes Kubernetes monitoring, Alertmanager, Pod logs and application observability.
+Alloy persistent queues use explicitly enabled public-preview functionality.
+External alert notifications require receiver configuration.
 See README.md for release packaging, offline loading, upgrades and end-to-end checks.

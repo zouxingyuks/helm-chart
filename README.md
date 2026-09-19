@@ -9,7 +9,7 @@
 | [homelab-common](charts/homelab-common/README.md) | 本地维护的公共模板 library，不单独部署 |
 | [lobehub](charts/lobehub/README.md) | LobeHub 应用，可选 PostgreSQL、Redis 子 chart |
 | [subconverter](charts/subconverter/README.md) | 独立前后端的订阅转换服务 |
-| [tracing-stack](charts/tracing-stack/README.md) | Grafana、Prometheus、Tempo、Loki、OpenTelemetry Gateway |
+| [tracing-stack](charts/tracing-stack/README.md) | Kubernetes 与应用可观测性，集成指标、日志、trace、告警及可选 Thanos |
 
 ## 开始开发
 

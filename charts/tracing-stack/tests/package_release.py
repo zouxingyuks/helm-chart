@@ -16,7 +16,7 @@ CHART = pathlib.Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("output", type=pathlib.Path)
 parser.add_argument("--offline", action="store_true", help="Pull and export all runtime and init-container images")
-parser.add_argument("--platform", default="linux/amd64", choices=("linux/amd64", "linux/arm64"))
+parser.add_argument("--platform", default="linux/amd64", choices=("linux/amd64",))
 args = parser.parse_args()
 out = args.output.resolve()
 if out.exists():
@@ -24,26 +24,42 @@ if out.exists():
 build()
 out.mkdir(parents=True, exist_ok=False)
 subprocess.run(["helm", "lint", str(CHART), "--strict"], check=True)
-rendered = subprocess.check_output(["helm", "template", "tracing", str(CHART), "-n", "observability"], text=True)
-docs = list(filter(None, yaml.safe_load_all(rendered)))
-images = set()
-for doc in docs:
-    if doc["kind"] in ("Deployment", "StatefulSet", "DaemonSet", "Job", "Pod"):
-        spec = doc["spec"] if doc["kind"] == "Pod" else doc["spec"]["template"]["spec"]
-        for container in spec.get("initContainers", []) + spec.get("containers", []):
-            image = container["image"]
-            if ":" not in image.rsplit("/", 1)[-1] or image.endswith(":latest"):
-                raise SystemExit("Unpinned image: " + image)
-            images.add(image)
-if len([d for d in docs if d["kind"] in ("Deployment", "StatefulSet")]) != 5:
-    raise SystemExit("Release must render all five core workloads")
+def rendered(*values):
+    command = ["helm", "template", "tracing", str(CHART), "-n", "observability"]
+    for value in values:
+        command.extend(["-f", str(CHART / "examples" / value)])
+    return list(filter(None, yaml.safe_load_all(subprocess.check_output(command, text=True))))
+
+
+def image_references(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "image" and isinstance(item, str):
+                yield item
+            yield from image_references(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from image_references(item)
+    elif isinstance(value, str) and value.startswith("--prometheus-config-reloader="):
+        yield value.split("=", 1)[1]
+
+
+docs = rendered()
+assert any(d["kind"] == "Prometheus" for d in docs), "Missing Prometheus CR"
+assert any(d["kind"] == "Alertmanager" for d in docs), "Missing Alertmanager CR"
+# Operator-managed images and optional components must be included in offline delivery.
+all_docs = docs + rendered("thanos.yaml", "otlp-ingress.yaml", "loki-s3.yaml", "tempo-s3.yaml")
+images = set(image_references(all_docs))
+for image in images:
+    if ":" not in image.rsplit("/", 1)[-1] or image.endswith(":latest"):
+        raise SystemExit("Unpinned image: " + image)
 (out / "images.txt").write_text("\n".join(sorted(images)) + "\n")
 subprocess.run(["helm", "package", str(CHART), "--destination", str(out)], check=True)
 for filename in ("README.md", "Chart.lock"):
     shutil.copy2(CHART / filename, out / filename)
 shutil.copytree(CHART / "examples", out / "examples")
 (out / "tests").mkdir()
-for filename in ("check_render.py", "smoke.py", "check_grafana.py", "verify_images.py"):
+for filename in ("check_render.py", "smoke.py", "check_grafana.py", "verify_images.py", "preflight.py", "check_queue_recovery.py", "check_auth.py"):
     shutil.copy2(CHART / "tests" / filename, out / "tests" / filename)
 manifest = {"chart": "tracing-stack", "version": yaml.safe_load((CHART / "Chart.yaml").read_text())["version"],
             "mode": "offline" if args.offline else "online", "platform": args.platform,

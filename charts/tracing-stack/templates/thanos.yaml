@@ -1,0 +1,134 @@
+{{- if .Values.thanos.enabled }}
+{{- $root := . }}
+{{- $secret := required "thanos.existingObjstoreSecret is required" .Values.thanos.existingObjstoreSecret }}
+{{- range $component := list "query" "store" "compactor" }}
+{{- $name := include "tracing-stack.thanosName" (dict "context" $root "component" $component) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "homelab.common.labels.standard" (dict "context" $root "component" (printf "thanos-%s" $component)) | nindent 4 }}
+spec:
+  ports:
+    - name: http
+      port: 10902
+    {{- if ne $component "compactor" }}
+    - name: grpc
+      port: 10901
+    {{- end }}
+  selector:
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/component: thanos-{{ $component }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "homelab.common.labels.standard" (dict "context" $root "component" (printf "thanos-%s" $component)) | nindent 4 }}
+spec:
+  replicas: 1
+  serviceName: {{ $name }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: thanos-{{ $component }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+        app.kubernetes.io/component: thanos-{{ $component }}
+    spec:
+      automountServiceAccountToken: false
+      {{- with $root.Values.thanos.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+        - name: thanos
+          image: {{ printf "%s:%s" $root.Values.thanos.image.repository $root.Values.thanos.image.tag | quote }}
+          imagePullPolicy: {{ $root.Values.thanos.image.pullPolicy }}
+          args:
+            - {{ if eq $component "compactor" }}compact{{ else }}{{ $component }}{{ end }}
+            - --http-address=0.0.0.0:10902
+            {{- if ne $component "compactor" }}
+            - --grpc-address=0.0.0.0:10901
+            {{- end }}
+            {{- if eq $component "query" }}
+            - --endpoint=dnssrv+_grpc._tcp.{{ include "kube-prometheus-stack.fullname" $root.Subcharts.monitoring }}-thanos-discovery.{{ $root.Release.Namespace }}.svc.cluster.local
+            - --endpoint={{ include "tracing-stack.thanosName" (dict "context" $root "component" "store") }}:10901
+            - --query.replica-label=prometheus_replica
+            {{- else }}
+            - --objstore.config-file=/etc/thanos/objstore.yml
+            - --data-dir=/var/thanos
+            {{- if eq $component "compactor" }}
+            - --wait
+            - --retention.resolution-raw={{ $root.Values.thanos.retention.raw }}
+            - --retention.resolution-5m={{ $root.Values.thanos.retention.fiveMinutes }}
+            - --retention.resolution-1h={{ $root.Values.thanos.retention.oneHour }}
+            {{- end }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 10902
+            {{- if ne $component "compactor" }}
+            - name: grpc
+              containerPort: 10901
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+          resources:
+            {{- toYaml $root.Values.thanos.resources | nindent 12 }}
+          {{- if ne $component "query" }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/thanos
+            - name: objstore
+              mountPath: /etc/thanos
+              readOnly: true
+          {{- end }}
+      {{- if ne $component "query" }}
+      volumes:
+        - name: objstore
+          secret:
+            secretName: {{ $secret }}
+            items:
+              - key: {{ $root.Values.thanos.objstoreKey }}
+                path: objstore.yml
+      {{- end }}
+  {{- if ne $component "query" }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with $root.Values.thanos.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ ternary $root.Values.thanos.persistence.compactorSize $root.Values.thanos.persistence.storeSize (eq $component "compactor") }}
+  {{- end }}
+{{- end }}
+{{- end }}

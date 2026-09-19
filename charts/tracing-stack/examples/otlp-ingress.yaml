@@ -1,0 +1,37 @@
+otlp-edge:
+  enabled: true
+  extraEnvs:
+    - name: OTLP_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: otlp-token
+          key: token
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: otlp-http.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+            port: 4318
+    tls:
+      - secretName: otlp-tls
+        hosts: [otlp-http.example.com]
+    additionalIngresses:
+      - name: grpc
+        ingressClassName: nginx
+        annotations:
+          nginx.ingress.kubernetes.io/backend-protocol: GRPC
+          nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        hosts:
+          - host: otlp-grpc.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+                port: 4317
+        tls:
+          - secretName: otlp-tls
+            hosts: [otlp-grpc.example.com]

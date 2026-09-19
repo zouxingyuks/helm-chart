@@ -1,14 +1,48 @@
 grafana:
   persistence:
-    storageClassName: standard
-prometheus:
-  server:
-    persistentVolume:
-      storageClass: standard
+    storageClassName: your-storage-class
+monitoring:
+  prometheus:
+    prometheusSpec:
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: your-storage-class
+  alertmanager:
+    alertmanagerSpec:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: your-storage-class
 tempo:
   persistence:
-    storageClassName: standard
+    storageClassName: your-storage-class
 loki:
   singleBinary:
     persistence:
-      storageClass: standard
+      storageClass: your-storage-class
+gateway:
+  statefulset:
+    volumeClaimTemplates:
+      - metadata:
+          name: queue
+        spec:
+          storageClassName: your-storage-class
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
+alloy:
+  controller:
+    volumeClaimTemplates:
+      - metadata:
+          name: data
+        spec:
+          storageClassName: your-storage-class
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
+thanos:
+  persistence:
+    storageClass: your-storage-class

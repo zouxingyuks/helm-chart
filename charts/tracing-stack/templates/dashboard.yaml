@@ -1,0 +1,11 @@
+{{- if .Values.global.grafana.install }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-observability-dashboard
+  labels:
+    {{- include "homelab.common.labels.standard" (dict "context" . "customLabels" (dict "grafana_dashboard" "1")) | nindent 4 }}
+data:
+  observability-overview.json: |
+    {{- (.Files.Get "dashboards/overview.json") | replace "\"__PROMETHEUS_UID__\"" (toJson .Values.global.prometheus.datasourceUid) | nindent 4 }}
+{{- end }}
