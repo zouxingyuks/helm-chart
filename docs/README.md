@@ -10,9 +10,11 @@
 | [开发流程](development/workflow.md) | 配置、模板、依赖的修改方式 |
 | [验证指南](development/testing.md) | 各测试入口、前置条件、覆盖范围和副作用 |
 | [打包与发布](development/releasing.md) | 跨 chart 的制品与索引维护流程 |
+| [Chart 版本规则](development/versioning.md) | 版本语法、变更级别、发布通道及迁移基准 |
 | [公共库 README](../charts/homelab-common/README.md) | Helper API、兼容性、命名空间及接入约定 |
 | [公共库测试说明](../tests/homelab-common/README.md) | 契约测试的准确参数与参考制品要求 |
 | [项目任务入口 skill](../.agents/skills/helm-chart-how-to/SKILL.md) | 选择项目 skills、区分职责；无匹配项时定位源码与开发指南 |
+| [Chart 版本 skill](../.agents/skills/helm-chart-version/SKILL.md) | 依据已发布制品建议、校验或按指令更新 chart 版本 |
 | [项目文档架构 skill](../.agents/skills/helm-chart-information-architecture/SKILL.md) | Agent 判断知识归属、整理和验证的可复用流程 |
 
 ## 放置规则

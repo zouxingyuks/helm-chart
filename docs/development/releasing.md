@@ -2,6 +2,8 @@
 
 本页维护仓库共用的发布步骤；chart 专属交付要求留在其 README。构建安装包与将其发布到远端是两个动作，本地打包成功不代表版本已发布。
 
+版本选择遵循 [Chart 版本规则](versioning.md)；已有 chart 接入新格式时先明确迁移基准与目标版本，不自动重置版本。Agent 分析和更新版本使用 [Chart 版本 skill](../../.agents/skills/helm-chart-version/SKILL.md)。
+
 ## 准备制品
 
 1. 核对目标 `Chart.yaml` 的 chart 版本与应用版本，完成受影响的[验证](testing.md)。已发布版本不覆盖，内容变化使用新 chart 版本。

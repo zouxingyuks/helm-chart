@@ -35,6 +35,11 @@
       "id": 7,
       "prompt": "下游 skill 要求读取根 AGENTS，其中又要求先用 helm-chart-how-to。",
       "expected_output": "将同一任务路由视为已执行，继续下游流程，避免自调用循环。"
+    },
+    {
+      "id": 8,
+      "prompt": "分析 axonhub 从 alpha 转入 beta 应使用的 chart 版本。",
+      "expected_output": "发现并使用 helm-chart-version，按版本契约选择 beta 基准；不加载文档架构流程，不自动修改或发布。"
     }
   ]
 }
