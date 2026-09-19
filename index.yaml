@@ -1,5 +1,17 @@
 apiVersion: v1
 entries:
+  homelab-common:
+  - annotations:
+      licenses: Apache-2.0
+    apiVersion: v2
+    created: '2026-09-19T17:35:48.22024687+08:00'
+    description: Shared, namespaced Helm helpers for application charts.
+    digest: b2dc0c16e58ed42bd76026ccc6d9f569fb224e78de74b8592cc66b39200fd89e
+    name: homelab-common
+    type: library
+    urls:
+    - https://helm-chart.snubisks.com/homelab-common-0.1.0.tgz
+    version: 0.1.0
   axonhub:
   - apiVersion: v2
     appVersion: latest
@@ -188,4 +200,4 @@ entries:
     urls:
     - https://helm-chart.snubisks.com/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-02T16:40:29.924974658+08:00"
+generated: '2026-09-19T17:35:48.219306441+08:00'
