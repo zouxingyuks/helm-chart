@@ -1,0 +1,18 @@
+OTLP gRPC: {{ include "opentelemetry-collector.fullname" .Subcharts.gateway }}.{{ .Release.Namespace }}.svc:4317
+OTLP HTTP: http://{{ include "opentelemetry-collector.fullname" .Subcharts.gateway }}.{{ .Release.Namespace }}.svc:4318
+
+{{ if .Values.global.grafana.install -}}
+Grafana: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "grafana.fullname" .Subcharts.grafana }} 3000:80
+Credentials: use the Grafana admin Secret (or your configured existingSecret).
+{{ else -}}
+Existing Grafana datasource sidecar must watch namespace {{ .Release.Namespace }}.
+{{ end -}}
+{{ if not .Values.global.prometheus.install -}}
+Existing Prometheus requires remote-write receiver and exemplar-storage enabled.
+{{ end -}}
+{{ if not .Values.global.loki.install -}}
+Existing Loki requires TSDB schema v13 and allow_structured_metadata=true.
+{{ end -}}
+
+Default mode is a self-contained five-component installation.
+See README.md for release packaging, offline loading, upgrades and end-to-end checks.

@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "required": [
+        "prometheus",
+        "loki"
+      ],
+      "properties": {
+        "prometheus": {
+          "type": "object",
+          "required": [
+            "install",
+            "url",
+            "datasourceUid"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "pattern": "^$|^https?://[^/]+.*$"
+            },
+            "datasourceUid": {
+              "type": "string",
+              "minLength": 1
+            },
+            "install": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "install": {
+                    "const": false
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "url": {
+                    "minLength": 1,
+                    "pattern": "^https?://"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "loki": {
+          "type": "object",
+          "properties": {
+            "install": {
+              "type": "boolean"
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^$|^https?://[^/]+.*$"
+            }
+          },
+          "required": [
+            "install",
+            "url"
+          ],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "install": {
+                    "const": false
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "url": {
+                    "minLength": 1,
+                    "pattern": "^https?://"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "grafana": {
+          "type": "object",
+          "required": [
+            "install"
+          ],
+          "properties": {
+            "install": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "tempo": {
+      "type": "object",
+      "properties": {
+        "nameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "fullnameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "replicas": {
+          "const": 1
+        }
+      }
+    },
+    "loki": {
+      "type": "object",
+      "properties": {
+        "nameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "fullnameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "singleBinary": {
+          "type": "object",
+          "properties": {
+            "replicas": {
+              "const": 1
+            }
+          }
+        }
+      }
+    },
+    "prometheus": {
+      "type": "object",
+      "properties": {
+        "nameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "const": "server"
+            },
+            "fullnameOverride": {
+              "enum": [
+                ""
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "global": {
+            "properties": {
+              "grafana": {
+                "properties": {
+                  "install": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "grafanaDatasources": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+grafana:
+  persistence:
+    storageClassName: standard
+prometheus:
+  server:
+    persistentVolume:
+      storageClass: standard
+tempo:
+  persistence:
+    storageClassName: standard
+loki:
+  singleBinary:
+    persistence:
+      storageClass: standard

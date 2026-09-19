@@ -1,0 +1,72 @@
+{{- if .Values.grafanaDatasources.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-tracing-datasources
+  labels:
+{{- if .Values.global.grafana.install }}
+    {{- include "homelab.common.labels.standard" (dict "context" $ "customLabels" (dict "tracing_stack_datasource" .Release.Name)) | nindent 4 }}
+{{- else }}
+    {{- include "homelab.common.labels.standard" (dict "context" $ "customLabels" .Values.grafanaDatasources.labels) | nindent 4 }}
+{{- end }}
+data:
+  {{ .Release.Name }}-tracing-datasources.yaml: |
+    apiVersion: 1
+    datasources:
+{{- if or .Values.global.prometheus.install .Values.global.grafana.install }}
+      - name: Prometheus
+        uid: {{ .Values.global.prometheus.datasourceUid | quote }}
+        type: prometheus
+        access: proxy
+        isDefault: true
+        url: {{ include "tracing-stack.prometheusURL" . | quote }}
+        jsonData:
+          httpMethod: POST
+          timeInterval: 30s
+          exemplarTraceIdDestinations:
+            - name: traceID
+              datasourceUid: {{ .Values.grafanaDatasources.tempoUid | quote }}
+              urlDisplayLabel: View trace
+{{- end }}
+      - name: {{ .Release.Name }}-Tempo
+        uid: {{ .Values.grafanaDatasources.tempoUid | quote }}
+        type: tempo
+        access: proxy
+        url: http://{{ include "tempo.fullname" .Subcharts.tempo }}.{{ .Release.Namespace }}.svc:3200
+        jsonData:
+          serviceMap:
+            datasourceUid: {{ .Values.global.prometheus.datasourceUid | quote }}
+          nodeGraph:
+            enabled: true
+          tracesToMetrics:
+            datasourceUid: {{ .Values.global.prometheus.datasourceUid | quote }}
+            tags:
+              - key: service.name
+                value: service
+            queries:
+              - name: Request rate
+                query: 'sum(rate(traces_spanmetrics_calls_total{$${__tags}}[5m]))'
+          tracesToLogsV2:
+            datasourceUid: {{ .Values.grafanaDatasources.lokiUid | quote }}
+            spanStartTimeShift: -5m
+            spanEndTimeShift: 5m
+            tags:
+              - key: service.name
+                value: service_name
+            customQuery: true
+            query: '{$${__tags}} | trace_id = "$${__span.traceId}"'
+      - name: {{ .Release.Name }}-Loki
+        uid: {{ .Values.grafanaDatasources.lokiUid | quote }}
+        type: loki
+        access: proxy
+        url: {{ include "tracing-stack.lokiURL" . | quote }}
+        jsonData:
+          derivedFields:
+            # Native OTLP stores trace_id as structured metadata, not in the body.
+            - name: TraceID
+              matcherType: label
+              matcherRegex: trace_id
+              datasourceUid: {{ .Values.grafanaDatasources.tempoUid | quote }}
+              url: '$${__value.raw}'
+              urlDisplayLabel: View trace
+{{- end }}

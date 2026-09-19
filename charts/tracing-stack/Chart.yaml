@@ -1,0 +1,29 @@
+apiVersion: v2
+name: tracing-stack
+description: Self-contained Grafana, Tempo, Loki, Prometheus and OpenTelemetry observability stack
+type: application
+version: 0.1.0
+kubeVersion: ">=1.25.0-0"
+dependencies:
+  - name: homelab-common
+    version: 0.1.0
+    repository: file://../homelab-common
+  - name: grafana
+    version: 12.3.0
+    repository: https://grafana-community.github.io/helm-charts
+    condition: global.grafana.install
+  - name: prometheus
+    version: 29.30.2
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: global.prometheus.install
+  - name: tempo
+    version: 1.24.4
+    repository: https://grafana.github.io/helm-charts
+  - name: opentelemetry-collector
+    alias: gateway
+    version: 0.145.0
+    repository: https://open-telemetry.github.io/opentelemetry-helm-charts
+  - name: loki
+    version: 6.53.0
+    repository: https://grafana.github.io/helm-charts
+    condition: global.loki.install
