@@ -19,6 +19,12 @@ application compatibility contracts; see README.md and NOTICE.
 
 {{/* First map wins, including false, zero, empty strings and lists. */}}
 {{- define "homelab.common.tplvalues.merge" -}}
+{{- if not (hasKey . "values") -}}
+{{- fail "homelab.common.tplvalues.merge: values is required (use [] for an empty merge)" -}}
+{{- end -}}
+{{- if not (kindIs "slice" .values) -}}
+{{- fail "homelab.common.tplvalues.merge: values must be a list (use [] for an empty merge)" -}}
+{{- end -}}
 {{- $dst := dict -}}
 {{- range reverse .values -}}
 {{- $rendered := include "homelab.common.tplvalues.render" (dict "value" . "context" $.context "scope" $.scope) -}}

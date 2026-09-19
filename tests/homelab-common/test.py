@@ -132,6 +132,49 @@ class Contracts(unittest.TestCase):
         self.assertIn('must be a YAML map', self.render({'mergeValues': ['- list']}, ok=False))
         self.assertEqual(yaml.safe_load(self.render({'mergeValues': []})['data']['merged']), {})
 
+    def test_merge_argument_validation(self):
+        consumer = self.work / 'merge-arguments'
+        shutil.copytree(self.fixture, consumer)
+        template = consumer / 'templates/configmap.yaml'
+        cases = [('', 'values is required'),
+                 ('"values" nil', 'values must be a list'),
+                 ('"values" (dict)', 'values must be a list'),
+                 ('"values" "text"', 'values must be a list'),
+                 ('"values" false', 'values must be a list'),
+                 ('"values" 0', 'values must be a list')]
+        for argument, error in cases:
+            with self.subTest(argument=argument):
+                template.write_text('{{ include "homelab.common.tplvalues.merge" '
+                                    '(dict "context" . ' + argument + ') }}')
+                self.assertIn(error, self.render(chart=consumer, ok=False))
+
+    def test_pull_secrets_in_pod(self):
+        consumer = self.work / 'pod-secrets'
+        shutil.copytree(self.fixture, consumer)
+        (consumer / 'templates/pod.yaml').write_text("""apiVersion: v1
+kind: Pod
+metadata:
+  name: example
+spec:
+  {{- include "homelab.common.images.pullSecrets" (dict "global" .Values.global "pullSecrets" .Values.imagePullSecrets "images" (list .Values.image)) | nindent 2 }}
+  containers:
+    - name: example
+      image: nginx:stable
+""")
+        for secrets, expected in [([], None), (['first'], [{'name': 'first'}]),
+                                  (['first', {'name': 'second'}, 'first'],
+                                   [{'name': 'first'}, {'name': 'second'}])]:
+            with self.subTest(secrets=secrets):
+                values = self.work / 'pod-values.yaml'
+                values.write_text(yaml.safe_dump({'imagePullSecrets': secrets}))
+                docs = yaml.safe_load_all(helm('template', 'demo', consumer, '-f', values))
+                pod = next(doc for doc in docs if doc and doc['kind'] == 'Pod')
+                self.assertEqual(pod['spec'].get('imagePullSecrets'), expected)
+                if expected is None:
+                    self.assertNotIn('imagePullSecrets', pod['spec'])
+                self.assertEqual(pod['spec']['containers'],
+                                 [{'name': 'example', 'image': 'nginx:stable'}])
+
     def test_optional_arguments_and_failures(self):
         consumer = self.work / 'optional'
         shutil.copytree(self.fixture, consumer)

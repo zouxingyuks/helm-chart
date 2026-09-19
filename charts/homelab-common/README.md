@@ -25,7 +25,7 @@ dependencies:
     repository: file://../homelab-common
 ```
 
-运行 `helm dependency build charts/<app>`，提交应用依赖锁文件并按仓库发布流程打包。消费者包须携带 `charts/homelab-common`；本地 file 路径不需要存在于安装机器。使用远程仓库时将 repository 换成实际发布地址并继续固定版本。本次实现不发布制品或修改发布索引。
+运行 `helm dependency build charts/<app>`，提交应用依赖锁文件并按仓库发布流程打包。消费者包须携带 `charts/homelab-common`；本地 file 路径不需要存在于安装机器。使用远程仓库时将 repository 换成实际发布地址并继续固定版本。仓库根目录提供版本化制品 `homelab-common-0.1.0.tgz` 和对应的 `index.yaml` 条目；远程消费需等待制品和索引发布到仓库站点。
 
 ```gotemplate
 metadata:
@@ -59,7 +59,7 @@ image: {{ include "homelab.common.images.image" (dict "imageRoot" .Values.image 
 | `storage.claimName {persistence?, defaultName?}` | 非空 existingClaim > 非空 defaultName，否则失败；名称不做 tpl、截断或添加后缀。应用负责 PVC 创建条件和原始名称。 |
 | `serviceAccount.name {context, serviceAccount?}` | 非空 name 优先；否则 create=true 时用应用 fullname，create=false/缺省时为 `default`。create 须为 boolean；应用负责创建条件、annotations、automount。 |
 
-本库没有会自动注入应用的 values 默认值。nameOverride/fullnameOverride、component、storageClass、existingClaim 和各种自定义名字都应是字符串，标签 map 的值应为合法标签字符串。`tplvalues.merge` 的 values 参数必传（允许 `[]`）。应用应通过自己的 values schema 验证业务配置。
+本库没有会自动注入应用的 values 默认值。nameOverride/fullnameOverride、component、storageClass、existingClaim 和各种自定义名字都应是字符串，标签 map 的值应为合法标签字符串。`tplvalues.merge` 的 values 参数必传且必须为列表（允许 `[]`）；缺失、null 或非列表会返回明确错误。应用应通过自己的 values schema 验证业务配置。
 
 ## 兼容性与接入约定
 

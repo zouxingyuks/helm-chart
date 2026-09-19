@@ -4,9 +4,9 @@ entries:
   - annotations:
       licenses: Apache-2.0
     apiVersion: v2
-    created: '2026-09-19T16:23:05.270258173+08:00'
+    created: '2026-09-19T17:35:48.22024687+08:00'
     description: Shared, namespaced Helm helpers for application charts.
-    digest: f1d481506a6cac849185d42fb3ee990eefa0bf8a7add7f69ffcf7abf5376fe76
+    digest: b2dc0c16e58ed42bd76026ccc6d9f569fb224e78de74b8592cc66b39200fd89e
     name: homelab-common
     type: library
     urls:
@@ -200,4 +200,4 @@ entries:
     urls:
     - https://helm-chart.snubisks.com/subconverter-1.0.0.tgz
     version: 1.0.0
-generated: '2026-09-19T16:23:05.269377849+08:00'
+generated: '2026-09-19T17:35:48.219306441+08:00'
