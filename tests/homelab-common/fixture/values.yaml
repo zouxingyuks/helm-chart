@@ -1,0 +1,21 @@
+image:
+  repository: nginx
+  tag: "1.27"
+serviceAccount:
+  create: false
+persistence: {}
+customLabels: {}
+mergeValues:
+  - nested:
+      winner: first
+    enabled: false
+    count: 0
+    text: ""
+    items: []
+  - nested:
+      winner: second
+      retained: yes
+    enabled: true
+    count: 2
+    text: fallback
+    items: [fallback]

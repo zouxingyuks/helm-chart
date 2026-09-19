@@ -1,0 +1,9 @@
+apiVersion: v2
+name: homelab-common
+description: Shared, namespaced Helm helpers for application charts.
+type: library
+version: 0.1.0
+annotations:
+  licenses: Apache-2.0
+# Selected Bitnami common 2.41.0 sources are maintained locally; no runtime dependencies.
+dependencies: []

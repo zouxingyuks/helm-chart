@@ -1,0 +1,8 @@
+This product includes software adapted from Bitnami common Helm chart 2.41.0.
+Copyright Broadcom, Inc. All Rights Reserved.
+Licensed under the Apache License, Version 2.0.
+Source: https://github.com/bitnami/charts/tree/main/bitnami/common
+Upstream artifact: common-2.41.0.tgz (see README.md for SHA-256).
+Modified files: _names.tpl, _labels.tpl, _images.tpl, _storage.tpl,
+_tplvalues.tpl. Helpers are renamed and narrowed; semantics differ as
+specified in README.md. No endorsement by Bitnami or Broadcom is implied.
