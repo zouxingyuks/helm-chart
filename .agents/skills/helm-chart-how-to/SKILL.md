@@ -10,6 +10,7 @@ description: helm-chart 仓库开发任务的默认入口；针对修改、审�
 |Discovery:检索本仓库 .agents/skills/*/SKILL.md 的 name/description；只将该目录中实际存在的 skills 纳入候选；下面已知路由用于加速，不替代发现。
 |Select:按任务意图和修改对象选择主 skill；有独立辅助职责时同时加载相应项目 skills，不整套加载；不存在匹配项时不虚构 skill、不自动安装或新建。
 |Docs Route:知识归属、文档结构、局部规则、工作流沉淀→[helm-chart-information-architecture](../helm-chart-information-architecture/SKILL.md)；目标明确的普通文字修正直接处理目标文件。
+|Version Route:chart 版本建议、校验、递增、通道切换与旧格式迁移→[helm-chart-version](../helm-chart-version/SKILL.md)；单纯打包读取发布指南，不因创建版本 skill 扩大为发布授权。
 |Fallback:无匹配项目 skill 时，配置/模板/依赖→[开发流程](../../../docs/development/workflow.md)及目标 Chart.yaml、values.yaml、相关模板；测试→[验证指南](../../../docs/development/testing.md)及现有测试；打包/发布→[发布指南](../../../docs/development/releasing.md)及实际脚本；架构理解→[架构资料](../../../docs/architecture/charts.md)及模块 README。
 |Review Debug:审查/排错先定位受影响行为，沿上述对象路由，核对源码与现有测试；没有专用 skill 不阻断工作，也不降低验证要求。
 |Disambiguate:how-to 负责选流程与入口；information-architecture 负责知识落位与同步；运行语义以实现证据核验，不能仅因任务包含文档二字把所有工作交给文档架构 skill。

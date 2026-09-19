@@ -1,0 +1,65 @@
+{
+  "skill_name": "helm-chart-version",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "同一 chart 和维护线的上个 beta 为 1.2.3-beta.4；多个 alpha 累计引入不兼容变更，最新 alpha 为 1.3.0-alpha.7。建议 beta 版本。",
+      "expected_output": "重新比较 beta 制品与目标内容，建议 1.3.0-beta.0，不替换 alpha Tag 或继承其 Patch。"
+    },
+    {
+      "id": 2,
+      "prompt": "上个 beta 为 1.2.3-beta.4，临时版本 1.2.3-beta.5-test.1 已删除；目标仅增加兼容配置项。",
+      "expected_output": "以不带 Mark 的 beta 为基准，建议 1.2.3-beta.5；不依赖已删除测试包。"
+    },
+    {
+      "id": 3,
+      "prompt": "同一 chart 两条维护线都有 beta；用户未指定维护线，无法由上下文确定。",
+      "expected_output": "询问维护线或基准，不取版本最大值或跨维护线最近发布时间。"
+    },
+    {
+      "id": 4,
+      "prompt": "现有 chart 的已发布版本为 0.1.0，请升级为新版本格式。",
+      "expected_output": "请求明确迁移基准和首个目标版本，不自动重置为全新 chart。"
+    },
+    {
+      "id": 5,
+      "prompt": "全新 chart 尚未发布，需要首个 alpha 和首个 beta 的版本建议。",
+      "expected_output": "分别为 1.0.0-alpha.0 和 1.0.0-beta.0；默认建议，不执行发布。"
+    },
+    {
+      "id": 6,
+      "prompt": "基准 1.2.3-beta.4，本次只修正 chart 包内 README 拼写。",
+      "expected_output": "建议 1.2.3-beta.5；若仅外层文档变化且不影响制品则不递增。"
+    },
+    {
+      "id": 7,
+      "prompt": "已有 1.2.3-beta.4 获准长期支持，请建议首次 LTS 版本。",
+      "expected_output": "首次为 1.2.3-lts.4，保留数字；不以无源码变化为由阻断已批准的通道建立。"
+    },
+    {
+      "id": 8,
+      "prompt": "工作区是 1.2.3-beta.5，有同名 Git tag，但渠道只有可获取的 1.2.3-beta.4。",
+      "expected_output": "选择渠道已发布制品，不强制 Git tag，不把工作区或 tag 当作已发布证明。"
+    },
+    {
+      "id": 9,
+      "prompt": "基准制品无法下载，用户要求给出准确的下个版本。",
+      "expected_output": "报告缺失的比较证据，不将推测作为已验证结果；不修改或发布。"
+    },
+    {
+      "id": 10,
+      "prompt": "分析版本建议，发现带 Mark 的旧测试包很多。",
+      "expected_output": "仅分析并输出证据和建议，不改文件、不发布、不自动删除测试包。"
+    },
+    {
+      "id": 11,
+      "prompt": "上个 beta 为 1.2.3-beta.4，一次包含兼容独立部署能力、文档修正及 PVC 身份变化。",
+      "expected_output": "按最高不兼容级别建议 1.3.0-beta.0，不逐项累加。"
+    },
+    {
+      "id": 12,
+      "prompt": "更新 chart 版本；仅能确认默认镜像版本发生变化，尚未确认应用升级兼容性。",
+      "expected_output": "继续查证上游变更和实际影响，证据不足明确待确认项，不一律按 Patch 或顺带升级 appVersion。"
+    }
+  ]
+}
