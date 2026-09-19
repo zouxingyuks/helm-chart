@@ -67,10 +67,12 @@ image: {{ include "homelab.common.images.image" (dict "imageRoot" .Values.image 
 
 名称、selector、PVC 是持久身份：升级中不要更改 nameOverride、fullnameOverride、component，也不要把 commonLabels/podLabels 加入 selector。原有应用如果已使用自定义 selector，应继续保留原 helper；需要变更时单独制定资源重建方案。标准标签不替代 selector helper。
 
-### tracing-stack 接入交接
+### 消费应用接入检查
+
+以下检查用于新增接入或审查升级；tracing-stack 已声明本库依赖，具体以其 Chart.yaml 和模板为准。
 
 1. 增加上述固定版本 file 依赖，构建并检查 Chart.lock。无需移除其第三方子 Chart 的 Bitnami common。
-2. 保留 tracing-stack 自己的 helper 名称作为适配层，仅委托等价的库方法；组件 suffix、组件 selector、数据库连接、端口、拓扑等仍由应用维护。fullname helper 截断后再添加 suffix 与添加 suffix 后截断并不等价，必须保留原顺序。
+2. 保留消费应用自己的 helper 名称作为适配层，仅委托等价的库方法；组件 suffix、组件 selector、数据库连接、端口、拓扑等仍由应用维护。fullname helper 截断后再添加 suffix 与添加 suffix 后截断并不等价，必须保留原顺序。
 3. 对每个工作负载同时迁移 selector 和 Pod labels，传入完全相同的显式 component。库缺省不会添加 component；已有 selector 的每个键和值都要保持。
 4. 镜像逐组件传 imageRoot；只有原行为允许时传 global/chart（appVersion 回退不一定适用于数据库或 sidecar）。顶层 imagePullSecrets 显式传入，库不会自动读取应用 Values。
 5. PVC 使用 `storage.claimName` 时 defaultName 传**原来的完整 claim 名称**，不直接改为库 fullname。应用继续使用 `enabled && !existingClaim` 创建条件；StatefulSet volumeClaimTemplates 名称、访问模式、容量、保留策略留在应用。首次迁移不要顺便启用 global.defaultStorageClass，也不要把历史 `-` 字面值不经审核改成空 StorageClass。
@@ -93,9 +95,9 @@ sha256sum /tmp/helm-chart-dist/homelab-common-0.1.0.tgz
 
 发布前运行完整契约测试，并检查 tgz 包含 Chart.yaml、templates、LICENSE、NOTICE、README.md。测试 fixture 不随库发布。版本发布后不可覆盖同版本制品；变更必须提升 Chart.yaml 的 version。
 
-本仓库现有 HTTP Helm 仓库为 `https://helm-chart.snubisks.com`。正式发布时，将版本化 tgz 放到该站点可下载的位置，再把新 chart 条目合并到原 index.yaml，保留其他版本和应用条目。应在独立发布目录准备索引，审核差异后再发布，不能用仅含本库的目录直接覆盖现有索引。制品应先于引用它的索引上线。
+本仓库 HTTP Helm 仓库为 `https://helm-chart.snubisks.com`。开发者的索引合并、发布顺序和远程验收流程见[仓库发布指南](https://github.com/zouxingyuks/helm-chart/blob/master/docs/development/releasing.md)。本库消费所需的包内契约保留在本 README。
 
-发布完成后，远程消费者可使用：
+远程消费者只有在相应版本正式发布后才能使用：
 
 ```yaml
 dependencies:
@@ -104,4 +106,4 @@ dependencies:
     repository: https://helm-chart.snubisks.com
 ```
 
-消费者运行 `helm dependency update` 生成锁文件并打包；CI 使用 `helm dependency build` 根据锁文件重建依赖。发布验收应从远程仓库重新拉取本库，在独立消费者中构建、打包并离线渲染。上述远程依赖地址只有在该版本正式发布后才可用。
+消费者有意更新依赖时运行 `helm dependency update` 并审查锁文件；按已有锁文件重建时使用 `helm dependency build`。安装包必须携带本库，安装机器无需原始 file 路径。

@@ -1,600 +1,141 @@
 # Subconverter Helm Chart
 
-## Introduction
+部署订阅转换后端 [subconverter](https://github.com/tindy2013/subconverter) 和前端
+[sub-web](https://github.com/CareyWang/sub-web)。默认启用两个独立的 Deployment 和 Service。
+完整配置入口为 [values.yaml](values.yaml)，资源定义为 [templates](templates/)。
 
-Subconverter is a utility to convert between various proxy subscription formats. It supports conversion between Clash,
-V2Ray, Surge, Quantumult X, and many other popular proxy clients.
+## 安装与访问
 
-This Helm chart deploys a complete subconverter instance on Kubernetes with:
+以下命令在仓库根目录执行，需要 Helm 和可访问的 Kubernetes 集群；安装命令会写入集群。
+Chart 没有外部 Chart 依赖。使用默认 release 名时：
 
-- **Backend**: Subconverter API service for subscription conversion
-- **Frontend**: [sub-web](https://github.com/CareyWang/sub-web) web UI for subscription conversion
-
-The frontend is enabled by default, providing an out-of-the-box experience with a beautiful web interface.
-
-## Architecture
-
-This chart deploys two containers in the same Pod when frontend is enabled:
-
-1. **Backend Container** (`subconverter`): Runs the subconverter API service on port 25500
-2. **Frontend Container** (`subconverter-frontend`): Runs the web UI on port 80
-
-### Container Communication
-
-When both containers are enabled, they communicate via `localhost` since they share the same network namespace in the
-Pod:
-
-- Frontend → Backend: `http://localhost:25500`
-- This is configured automatically via the `API_URL` environment variable
-
-For external API configuration, set `frontend.apiURL` to point to a remote backend.
-
-## Prerequisites
-
-- Kubernetes 1.20+
-- Helm 3.0+
-
-## Installation
-
-### Quick Start (Default with Frontend)
-
-```bash
+```sh
 helm install subconverter charts/subconverter
+kubectl port-forward svc/subconverter-frontend 8080:80
 ```
 
-This installs both the backend and frontend containers. The frontend will be accessible via port-forwarding or Ingress.
+浏览器访问 `http://localhost:8080`。后端 Service 为 `subconverter-backend:25500`，
+前端 Service 为 `subconverter-frontend:80`；它们有独立 selector，不共享 Pod 网络。
+更换 release 名或 name overrides 后，应以渲染结果中的 Service 名称为准。
 
-### Install from local chart
+`frontend.apiURL` 对应 `VUE_APP_SUBCONVERTER_DEFAULT_BACKEND`。留空时模板生成后端
+Service 地址，而非 `localhost`。此处只说明 Chart 注入的环境变量；浏览器通常无法解析
+集群 Service DNS，且具体镜像是否在启动时将变量写入前端静态配置需要运行验证。
+对外使用应设置浏览器可访问的后端 URL，并检查浏览器请求、HTTPS 和跨域配置。
 
-```bash
-helm install subconverter charts/subconverter
+本机访问前后端时，可在两个终端分别运行上述前端转发和：
+
+```sh
+kubectl port-forward svc/subconverter-backend 25500:25500
+curl http://localhost:25500/version
 ```
 
-### Install with custom values
+## 配置入口
 
-```bash
-helm install subconverter charts/subconverter -f custom-values.yaml
+以下为常用配置；完整默认值以 values.yaml 为准，不使用旧的顶层 `image`、`service`、
+`replicaCount`、`resources` 作为后端配置。
+
+| 配置 | 默认值或行为 |
+| --- | --- |
+| `backend.enabled` / `frontend.enabled` | 均为 `true`，独立控制组件 |
+| `backend.replicaCount` / `frontend.replicaCount` | 均为 `1`，对应 HPA 启用时忽略 |
+| `backend.image.repository` / `backend.image.tag` | `asdlokj1qpi23/subconverter` / `0.9.0` |
+| `frontend.image.repository` / `frontend.image.tag` | `careywong/subweb` / `latest` |
+| `backend.service.type` / `backend.service.port` | `ClusterIP` / `25500`；前端 Service 固定为 ClusterIP、80 |
+| `backend.configMode` | `default`；其他模式见下方限制 |
+| `backend.persistence.enabled` | `false`；启用后挂载 `/base/` |
+| `backend.persistence.existingClaim` | 可指定已有 PVC，否则创建 PVC |
+| `backend.persistence.storageClass` | 空值省略 storageClassName；`-` 显式设为空字符串 |
+| `backend.resources` / `frontend.resources` | 分别配置 requests/limits |
+| `backend.autoscaling` / `frontend.autoscaling` | 独立 HPA，默认关闭 |
+| `backend.podDisruptionBudget` / `frontend.podDisruptionBudget` | 独立 PDB，默认关闭 |
+| `serviceAccount` | 两个组件使用同一 ServiceAccount 配置 |
+| `frontend.apiURL` | 空值生成集群内后端 Service URL |
+| `frontend.env` | 额外容器环境变量，按原样注入 |
+
+前端还支持 `projectUrl`、`botLink`、`useStorage`、`cacheTTL`、`backendRelease`、
+`remoteConfig`、`advancedDoc`、`myurlsApi` 和 `configUploadApi`。对应的 `VUE_APP_*`
+变量映射见 [deployment-frontend.yaml](templates/deployment-frontend.yaml)。环境变量注入
+不等于已验证前端镜像支持运行时配置；普通容器变量也不必都使用 `VUE_APP_` 前缀。
+
+两个组件的调度、探针和安全上下文分别在 `backend.*` / `frontend.*` 配置。
+PDB 的 `minAvailable` 与 `maxUnavailable` 不应同时设置；使用后者时清除默认的前者。
+
+## 常用部署方式
+
+仅部署后端：
+
+```sh
+helm install subconverter charts/subconverter --set frontend.enabled=false
 ```
 
-## Configuration
+仅部署前端，连接已有的后端：
 
-The following table lists the configurable parameters of the subconverter chart:
-
-### General Parameters
-
-| Parameter          | Description                | Default                      |
-|--------------------|----------------------------|------------------------------|
-| `image.repository` | Container image repository | `asdlokj1qpi23/subconverter` |
-| `image.tag`        | Container image tag        | `0.9.0`                      |
-| `image.pullPolicy` | Image pull policy          | `IfNotPresent`               |
-| `replicaCount`     | Number of replicas         | `1`                          |
-
-### Frontend Configuration
-
-| Parameter                   | Description                                  | Default                  |
-|-----------------------------|----------------------------------------------|--------------------------|
-| `frontend.enabled`          | Enable frontend container                    | `true`                   |
-| `frontend.image.repository` | Frontend image repository                    | `careywong/subweb`       |
-| `frontend.image.tag`        | Frontend image tag                           | `latest`                 |
-| `frontend.apiURL`           | External API URL (empty = use local backend) | `""`                     |
-| `frontend.projectUrl`       | Project homepage URL (VUE_APP_PROJECT)       | `https://github.com/CareyWang/sub-web` |
-| `frontend.botLink`          | Telegram bot link (VUE_APP_BOT_LINK)         | `https://t.me/subconverter_discuss` |
-| `frontend.useStorage`       | Use browser storage (VUE_APP_USE_STORAGE)    | `true`                   |
-| `frontend.cacheTTL`         | Cache time-to-live in seconds (VUE_APP_CACHE_TTL) | `86400`            |
-| `frontend.backendRelease`   | Backend release page link (VUE_APP_BACKEND_RELEASE) | `https://github.com/tindy2013/subconverter/actions` |
-| `frontend.remoteConfig`     | Remote config file URL (VUE_APP_SUBCONVERTER_REMOTE_CONFIG) | `https://raw.githubusercontent.com/tindy2013/subconverter/master/base/config/example_external_config.ini` |
-| `frontend.advancedDoc`      | Advanced documentation link (VUE_APP_SUBCONVERTER_DOC_ADVANCED) | `https://github.com/tindy2013/subconverter/blob/master/README-cn.md#%E8%BF%9B%E9%98%B6%E9%93%BE%E6%8E%A5` |
-| `frontend.myurlsApi`        | Short URL backend API (VUE_APP_MYURLS_API)   | `""` (disabled by default) |
-| `frontend.configUploadApi`  | Configuration upload API (VUE_APP_CONFIG_UPLOAD_API) | `""` (disabled by default) |
-| `frontend.env`              | Additional environment variables             | `[]`                     |
-| `frontend.resources`        | Frontend resource limits/requests            | See below                |
-
-#### Frontend Environment Variables
-
-The frontend container uses **Vue.js environment variables**. All custom environment variables in Vue.js must start with `VUE_APP_` to be available in the application.
-
-**Important**: Only environment variables starting with `VUE_APP_` will be recognized by the Vue.js application. Variables without this prefix (like the old `API_URL`) are ignored by Vue.js.
-
-**Configurable Variables**:
-
-| Environment Variable | Description | Default | Configuration Parameter |
-|---------------------|-------------|---------|------------------------|
-| `VUE_APP_SUBCONVERTER_DEFAULT_BACKEND` | Backend API URL | `http://localhost:25500` | `frontend.apiURL` |
-| `VUE_APP_PROJECT` | Project homepage | `https://github.com/CareyWang/sub-web` | `frontend.projectUrl` |
-| `VUE_APP_BOT_LINK` | Telegram bot link | `https://t.me/subconverter_discuss` | `frontend.botLink` |
-| `VUE_APP_USE_STORAGE` | Enable browser storage | `true` | `frontend.useStorage` |
-| `VUE_APP_CACHE_TTL` | Cache TTL in seconds | `86400` | `frontend.cacheTTL` |
-| `VUE_APP_BACKEND_RELEASE` | Backend release page link | `https://github.com/tindy2013/subconverter/actions` | `frontend.backendRelease` |
-| `VUE_APP_SUBCONVERTER_REMOTE_CONFIG` | Remote config file URL | `https://raw.githubusercontent.com/tindy2013/subconverter/master/base/config/example_external_config.ini` | `frontend.remoteConfig` |
-| `VUE_APP_SUBCONVERTER_DOC_ADVANCED` | Advanced documentation link | `https://github.com/tindy2013/subconverter/blob/master/README-cn.md#%E8%BF%9B%E9%98%B6%E9%93%BE%E6%8E%A5` | `frontend.advancedDoc` |
-| `VUE_APP_MYURLS_API` | Short URL backend API | `""` (disabled) | `frontend.myurlsApi` |
-| `VUE_APP_CONFIG_UPLOAD_API` | Configuration upload API | `""` (disabled) | `frontend.configUploadApi` |
-
-**Additional Variables**:
-
-You can add extra custom environment variables using the `frontend.env` array. All custom environment variables must start with `VUE_APP_` prefix.
-
-Example:
-
-```yaml
-frontend:
-  env:
-    - name: VUE_APP_CUSTOM_VAR
-      value: "custom-value"
-```
-
-See [Vue CLI documentation](https://cli.vuejs.org/guide/mode-and-env.html#using-env-variables-in-client-side-code) for more details.
-
-#### Frontend Security
-
-The frontend container uses the default security context from the original Docker image
-(`careywong/subweb`). This chart avoids over-engineering security configurations to maintain
-compatibility with the upstream image design.
-
-If you need custom security settings, you can override `frontend.securityContext` in your
-values file.
-
-#### Frontend Resources
-
-| Parameter                            | Description             | Default |
-|--------------------------------------|-------------------------|---------|
-| `frontend.resources.limits.cpu`      | Frontend CPU limit      | `200m`  |
-| `frontend.resources.limits.memory`   | Frontend memory limit   | `256Mi` |
-| `frontend.resources.requests.cpu`    | Frontend CPU request    | `50m`   |
-| `frontend.resources.requests.memory` | Frontend memory request | `64Mi`  |
-
-### Service Configuration
-
-| Parameter             | Description             | Default     |
-|-----------------------|-------------------------|-------------|
-| `service.type`        | Kubernetes service type | `ClusterIP` |
-| `service.port`        | Backend service port    | `25500`     |
-| `service.annotations` | Service annotations     | `{}`        |
-
-#### Service Ports
-
-**Chart v0.4.0+: Conditional Port Exposure**
-
-When frontend is enabled, the service exposes only the frontend port:
-
-- **Port 80** (named `http`): Frontend web UI - Use this for accessing the web interface
-  - **targetPort: 80** - Routes traffic specifically to the frontend container
-- The backend port (25500) is NOT exposed through the service for security reasons
-- The frontend container accesses the backend via `http://localhost:25500` within the Pod
-
-When frontend is disabled, the service exposes only the backend port:
-
-- **Port 25500** (named `backend`): Backend API - Use this for direct API access
-  - **targetPort: 25500** - Routes traffic specifically to the backend container
-- This configuration is suitable for API-only deployments
-
-**Note on targetPort**: The service uses explicit port numbers (80, 25500) as `targetPort` instead of port names. This ensures precise traffic routing to the correct container when multiple containers are present in the Pod, avoiding potential routing conflicts.
-
-**Migration from v0.3.x and earlier**: In previous versions, both ports were exposed when frontend was enabled. If you were directly accessing the backend port through the service, you have two options:
-1. Keep frontend enabled and access the backend through the frontend web UI
-2. Disable frontend (`frontend.enabled: false`) to expose only the backend port
-
-#### Accessing the Services
-
-```bash
-# When frontend is enabled (default)
-kubectl port-forward svc/subconverter 8080:80
-# Open browser at http://localhost:8080
-
-# When frontend is disabled
-kubectl port-forward svc/subconverter 25500:25500
-# Test: curl http://localhost:25500/version
-```
-
-### Ingress Configuration
-
-The chart supports two Ingress configuration modes:
-
-| Parameter           | Description               | Default                    |
-|---------------------|---------------------------|----------------------------|
-| `ingress.enabled`   | Enable ingress            | `false`                    |
-| `ingress.className` | Ingress class name        | `nginx`                    |
-| `ingress.hostname`  | Ingress hostname (single domain mode) | `subconverter.example.com` |
-| `ingress.hosts`     | Multiple domain configurations (multi-domain mode) | `[]` |
-| `ingress.tls`       | Ingress TLS configuration (single domain mode) | `[]` |
-
-#### Ingress Behavior
-
-By default, when frontend is enabled, the Ingress routes traffic to the frontend (port 80). Users can access the web UI
-through the Ingress hostname.
-
-#### Multi-Domain Ingress (NEW)
-
-The chart now supports configuring multiple domains with independent TLS certificates and annotations for frontend and backend:
-
-**Example: Separate domains for frontend and backend**
-
-```yaml
-ingress:
-  enabled: true
-  className: "nginx"
-  hostname: ""  # Leave empty when using multi-domain mode
-
-  hosts:
-    # Frontend domain
-    - name: frontend.example.com
-      servicePort: 80  # Routes to frontend container
-      path: /
-      pathType: Prefix
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      tls:
-      - secretName: frontend-tls
-        hosts:
-          - frontend.example.com
-
-    # Backend API domain
-    - name: api.example.com
-      servicePort: 25500  # Routes to backend API
-      path: /
-      pathType: Prefix
-      annotations:
-        cert-manager.io/cluster-issuer: "letsencrypt-prod"
-        nginx.ingress.kubernetes.io/cors-allow-origin: "https://frontend.example.com"
-        nginx.ingress.kubernetes.io/enable-cors: "true"
-      tls:
-      - secretName: api-tls
-        hosts:
-          - api.example.com
-```
-
-**Benefits of multi-domain mode**:
-- Separate domain names for frontend UI and backend API
-- Independent TLS certificates for each domain
-- Different Ingress annotations per domain (CORS, security policies, etc.)
-- Better security and isolation
-
-Use the provided example file for quick setup:
-```bash
-helm install subconverter charts/subconverter -f charts/subconverter/values-multi-domain.yaml
-```
-
-**Migration from single-domain mode**:
-```yaml
-# Before (single domain)
-ingress:
-  hostname: subconverter.example.com
-
-# After (multi-domain)
-ingress:
-  hostname: ""  # Clear this
-  hosts:
-    - name: frontend.example.com
-      servicePort: 80
-    - name: api.example.com
-      servicePort: 25500
-```
-
-#### Separate Ingress for Frontend and Backend (Legacy)
-
-If you need separate Ingress rules for frontend and backend:
-
-```yaml
-# Frontend Ingress (default)
-ingress:
-  enabled: true
-  hostname: subconverter.example.com
-  tls:
-    - hosts:
-        - subconverter.example.com
-      secretName: subconverter-tls
-
-# For backend API access, create an additional Ingress manually
-# or disable frontend and use the default Ingress configuration
-```
-
-#### Backend-Only Ingress
-
-When frontend is disabled, Ingress routes directly to the backend API:
-
-```yaml
-frontend:
-  enabled: false
-
-ingress:
-  enabled: true
-  hostname: subconverter-api.example.com
-```
-
-### Configuration Mode
-
-| Parameter     | Description                                        | Default   |
-|---------------|----------------------------------------------------|-----------|
-| `configMode`  | Configuration mode (default/configmap/customImage) | `default` |
-| `configFiles` | Configuration files for configmap mode             | `{}`      |
-
-### Resources
-
-| Parameter                   | Description    | Default |
-|-----------------------------|----------------|---------|
-| `resources.limits.cpu`      | CPU limit      | `500m`  |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.requests.cpu`    | CPU request    | `100m`  |
-| `resources.requests.memory` | Memory request | `128Mi` |
-
-## Usage Examples
-
-### Default Deployment (Frontend + Backend)
-
-```bash
-helm install subconverter charts/subconverter
-```
-
-This deploys both frontend and backend containers. Access the web UI:
-
-```bash
-kubectl port-forward svc/subconverter 8080:80
-# Open browser at http://localhost:8080
-```
-
-### Backend Only (Disable Frontend)
-
-Use the provided values file:
-
-```bash
-helm install subconverter charts/subconverter -f charts/subconverter/values-no-frontend.yaml
-```
-
-Or set in your custom values:
-
-```yaml
-frontend:
-  enabled: false
-```
-
-### Frontend with External API
-
-For frontend-backend separation:
-
-```bash
-helm install subconverter charts/subconverter -f charts/subconverter/values-external-api.yaml
-```
-
-Custom configuration:
-
-```yaml
-frontend:
-  enabled: true
-  apiURL: "https://subconverter-api.example.com"
-  env:
-    - name: NODE_ENV
-      value: production
-```
-
-### Custom Configuration with ConfigMap
-
-```yaml
-configMode: configmap
-configFiles:
-  pref.yaml: |
-    # Your pref configuration
-```
-
-### Custom Image with Embedded Configuration
-
-```yaml
-image:
-  repository: myregistry/subconverter-custom
-  tag: v1.0.0
-configMode: customImage
-```
-
-### Ingress with TLS
-
-```yaml
-ingress:
-  enabled: true
-  hostname: subconverter.example.com
-  tls:
-    - hosts:
-        - subconverter.example.com
-      secretName: subconverter-tls
-```
-
-### Using Third-Party Frontend
-
-If you prefer to use the enhanced sub-web-modify frontend with additional features
-like dark mode and more remote configurations:
-
-```bash
+```sh
 helm install subconverter charts/subconverter \
-  --set frontend.image.repository=youshandefeiyang/sub-web-modify \
-  --set frontend.image.tag=latest
+  --set backend.enabled=false \
+  --set frontend.apiURL=https://api.example.com
 ```
 
-Or create a custom values file:
+其他配置写入自己创建的 values 文件，再通过 `-f your-values.yaml` 传入；仓库没有
+`values-no-frontend.yaml`、`values-external-api.yaml` 或 `values-multi-domain.yaml` 示例文件。
+
+## Ingress
+
+默认关闭。`ingress.hosts` 非空时使用多域名模式并忽略 `ingress.hostname`；二者不是
+模板强制互斥的配置。单域名模式在前端启用时指向前端，否则指向后端。
+
+多域名模式为每个 host 创建一个 Ingress，支持各自的 annotations/TLS。
+`serviceName` 默认指向前端；**仅将 servicePort 改为 25500 不会切换到后端 Service**。
+以下配置适用于 release 名 `subconverter` 且未设置 name overrides：
 
 ```yaml
 frontend:
-  image:
-    repository: youshandefeiyang/sub-web-modify
-    tag: latest
+  apiURL: https://api.example.com
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - name: frontend.example.com
+      serviceName: subconverter-frontend
+      servicePort: 80
+      tls:
+        - secretName: frontend-tls
+          hosts: [frontend.example.com]
+    - name: api.example.com
+      serviceName: subconverter-backend
+      servicePort: 25500
+      tls:
+        - secretName: backend-tls
+          hosts: [api.example.com]
 ```
 
-**Note**: The default frontend is the official CareyWang/sub-web, which provides
-core functionality without additional modifications.
+TLS Secret、域名解析、Ingress Controller 和跨域策略由部署环境提供。
+自定义 release 名或 overrides 时，相应调整 `serviceName`。组件禁用后也应移除指向它的路由。
 
-## Upgrading
+## 配置文件与存储限制
 
-### Standard Upgrade
+`default` 使用后端镜像内置配置；`customImage` 表示选择内嵌配置的自定义后端镜像，
+Chart 不负责构建镜像。持久化启用时挂载 `/base/`，镜像需兼容该目录被覆盖的行为。
 
-```bash
-helm upgrade subconverter charts/subconverter
+当前实现存在键位不一致：后端 Deployment 使用 `backend.configMode`，而
+[configmap.yaml](templates/configmap.yaml) 仍读取顶层 `configMode` / `configFiles`。
+因此仅设置 `backend.configMode: configmap` 和 `backend.configFiles` 不会生成所需
+ConfigMap，不能将其视为完整可用的配置方式。修复该行为前须同时核对 ConfigMap、挂载
+和 checksum 渲染。`backend.configMode: configmap` 与
+`backend.persistence.enabled: true` 同时启用会触发模板错误。
+
+## 开发验证
+
+本地命令不访问集群、不下载依赖：
+
+```sh
+helm lint charts/subconverter --strict
+helm template subconverter charts/subconverter
+helm template subconverter charts/subconverter --set frontend.enabled=false
+helm template subconverter charts/subconverter --set backend.enabled=false
 ```
 
-### Upgrade from Backend-Only to Frontend+Backend
-
-If you have an existing deployment without the frontend:
-
-```bash
-# Upgrade with frontend enabled (default)
-helm upgrade subconverter charts/subconverter
-```
-
-To keep backend-only configuration:
-
-```bash
-helm upgrade subconverter charts/subconverter --set frontend.enabled=false
-```
-
-**Important**: When upgrading from chart version 0.1.0 to 0.2.0+, the frontend is enabled by default. To maintain the
-previous behavior, explicitly set `frontend.enabled: false`.
-
-### Upgrade from v0.2.0 to v0.3.0
-
-Starting from chart version 0.3.0, the default image repository has changed from `tindy2013/subconverter` to
-`asdlokj1qpi23/subconverter`. The new image is functionally equivalent to the previous one.
-
-To continue using the old image repository:
-
-```bash
-helm upgrade subconverter charts/subconverter --set image.repository=tindy2013/subconverter
-```
-
-To use the new image repository (default):
-
-```bash
-helm upgrade subconverter charts/subconverter
-```
-
-No other configuration changes are required.
-
-### Upgrade from v0.3.0 to v0.4.0
-
-**Important Breaking Change: Service Port Configuration**
-
-Starting from chart version 0.4.0, the Service port exposure behavior has changed for improved security:
-
-- **Previous behavior (v0.3.x)**: When frontend was enabled, the service exposed both port 80 (frontend) and port 25500 (backend)
-- **New behavior (v0.4.0+)**:
-  - When `frontend.enabled: true`, the service exposes **only port 80** (frontend)
-  - When `frontend.enabled: false`, the service exposes **only port 25500** (backend)
-
-**Rationale**: This change follows Kubernetes best practices where containers in the same Pod should communicate via `localhost`. The backend port doesn't need to be exposed through the service since the frontend accesses it internally.
-
-**Migration Guide**:
-
-If you have an existing deployment with frontend enabled and you were directly accessing the backend port through the service:
-
-1. **Option 1**: Access the backend through the frontend web UI (recommended)
-   ```bash
-   helm upgrade subconverter charts/subconverter
-   # Access via http://<your-ingress-host>/ or port-forward to port 80
-   ```
-
-2. **Option 2**: Disable the frontend to expose only the backend port
-   ```bash
-   helm upgrade subconverter charts/subconverter --set frontend.enabled=false
-   ```
-
-**Frontend Image Update**:
-
-In v0.4.0, the default frontend image has also changed from `youshandefeiyang/sub-web-modify` to `careywong/subweb`.
-
-The official `careywong/subweb` image provides the core sub-web functionality without additional modifications. It is maintained by the upstream author and has better long-term support.
-
-**To upgrade to the new frontend (recommended)**:
-
-```bash
-helm upgrade subconverter charts/subconverter
-```
-
-**To continue using the old frontend**:
-
-```bash
-helm upgrade subconverter charts/subconverter \
-  --set frontend.image.repository=youshandefeiyang/sub-web-modify
-```
-
-**Key differences**:
-- Official version does not include dark mode
-- Official version has fewer preset remote configurations (you can add your own)
-- Official version is actively maintained by the upstream author
-
-## Uninstalling
-
-```bash
-helm uninstall subconverter
-```
-
-## Troubleshooting
-
-### Check pod status
-
-```bash
-kubectl get pods -l app.kubernetes.io/name=subconverter
-```
-
-### View backend logs
-
-```bash
-kubectl logs -l app.kubernetes.io/name=subconverter -c subconverter
-```
-
-### View frontend logs
-
-```bash
-kubectl logs -l app.kubernetes.io/name=subconverter -c subconverter-frontend
-```
-
-### Test backend health endpoint
-
-```bash
-kubectl exec -it <pod-name> -- curl http://localhost:25500/version
-```
-
-### Test frontend health endpoint
-
-```bash
-kubectl exec -it <pod-name> -c subconverter-frontend -- curl http://localhost:80/
-```
-
-### Frontend Cannot Connect to Backend
-
-If the frontend shows connection errors:
-
-1. **Check if frontend is enabled**:
-   ```bash
-   kubectl get deployment subconverter -o yaml | grep frontend.enabled
-   ```
-
-2. **Verify backend is running**:
-   ```bash
-   kubectl exec -it <pod-name> -c subconverter -- curl http://localhost:25500/version
-   ```
-
-3. **Check API_URL environment variable**:
-   ```bash
-   kubectl exec -it <pod-name> -c subconverter-frontend -- env | grep API_URL
-   ```
-   Expected output: `API_URL=http://localhost:25500`
-
-4. **Review frontend logs** for connection errors:
-   ```bash
-   kubectl logs -l app.kubernetes.io/name=subconverter -c subconverter-frontend --tail=50
-   ```
-
-## References
-
-- [Subconverter GitHub](https://github.com/tindy2013/subconverter)
-- [Subconverter Documentation](https://github.com/tindy2013/subconverter/blob/master/README-docker.md)
-- [sub-web GitHub](https://github.com/CareyWang/sub-web)
-
-## Example Values Files
-
-The chart includes several example values files for different scenarios:
-
-- `values-with-frontend.yaml` - Default configuration with frontend enabled
-- `values-no-frontend.yaml` - Backend-only deployment
-- `values-external-api.yaml` - Frontend connecting to external API
-
-Usage:
-
-```bash
-helm install subconverter charts/subconverter -f charts/subconverter/values-no-frontend.yaml
-```
+修改路由需核对 Ingress 的 Service 名和端口；修改配置需核对引用的 ConfigMap/PVC 是否
+实际存在；修改组件开关需同时检查 Deployment、Service、HPA/PDB 和 Ingress。
+本地渲染通过不能证明前端镜像的运行时变量处理、浏览器连通性或生产部署健康。

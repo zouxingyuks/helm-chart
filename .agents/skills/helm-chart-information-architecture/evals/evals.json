@@ -1,0 +1,50 @@
+{
+  "skill_name": "helm-chart-information-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "修改 subconverter 的 Service selector 后，该把组件约束放在哪里？",
+      "expected_output": "读取局部规则与模板；Agent 修改约束放局部 AGENTS，运行说明放 chart README；不复制根规则。"
+    },
+    {
+      "id": 2,
+      "prompt": "把 homelab-common 的完整 API 表挪到根 AGENTS，方便自动加载。",
+      "expected_output": "建议保留 chart README 中的公开契约，根规则只索引；解释包内可读性和职责，不直接搬迁。"
+    },
+    {
+      "id": 3,
+      "prompt": "想记录所有 chart 的打包与索引发布步骤。",
+      "expected_output": "读取 docs 地图和现有 releasing.md，更新开发流程；保留 tracing 专属交付说明于 chart 内，区分本地包与远端发布。"
+    },
+    {
+      "id": 4,
+      "prompt": "tracing 的 --offline 是否意味着构建不联网？把结论加进文档。",
+      "expected_output": "核对 package_release.py 和 build_dependencies.py；说明联网获取依赖与镜像后生成离线交付物，不运行发布。"
+    },
+    {
+      "id": 5,
+      "prompt": "AGENTS 写同 Pod，而 Subconverter 模板看起来是两个 Deployment，统一一下。",
+      "expected_output": "核对 Deployment/Service/values 后修正过时描述，搜索其他旧说法；不改代码以迎合文档。"
+    },
+    {
+      "id": 6,
+      "prompt": "增加一个本地 skill 是否必须再建 helm-chart-how-to？",
+      "expected_output": "检索已有路由；不强制增加 router，仅在选择语义实际变化时更新入口。"
+    },
+    {
+      "id": 7,
+      "prompt": "测试还没做完，写进项目 README 提醒下一个人。",
+      "expected_output": "临时进度留任务；真实已知限制有证据时可记录模块文档，不混为尚未完成状态。"
+    },
+    {
+      "id": 8,
+      "prompt": "整理 homelab-common 测试命令到开发指南。",
+      "expected_output": "保留 tests/homelab-common/README.md 的准确参数和参考 tgz 要求，开发指南链接它；不宣称未执行的检查通过。"
+    },
+    {
+      "id": 9,
+      "prompt": "新增应用 chart 后更新文档入口。",
+      "expected_output": "检索真实 Chart.yaml/README、根索引和架构页；更新必要入口，不复制所有配置、也不强制公共库接入。"
+    }
+  ]
+}
