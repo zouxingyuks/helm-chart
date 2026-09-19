@@ -1,0 +1,318 @@
+# 默认安装全部五个组件。
+global:
+  grafana:
+    install: true
+  prometheus:
+    install: true
+    url: ""
+    datasourceUid: prometheus
+  loki:
+    install: true
+    url: ""
+
+grafanaDatasources:
+  # 数据源 ConfigMap 部署在 release namespace。
+  enabled: true
+  labels:
+    grafana_datasource: "1"
+  # Grafana 数据源 UID。
+  tempoUid: tracing-tempo
+  lokiUid: tracing-loki
+
+grafana:
+  initChownData:
+    securityContext:
+      capabilities:
+        add:
+          - CHOWN
+          - DAC_READ_SEARCH
+  image:
+    tag: "13.0.1"
+  persistence:
+    enabled: true
+    size: 2Gi
+  deploymentStrategy:
+    type: Recreate
+  rbac:
+    namespaced: true
+  sidecar:
+    datasources:
+      enabled: true
+      label: tracing_stack_datasource
+      labelValue: '{{ .Release.Name }}'
+      resource: configmap
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  testFramework:
+    enabled: false
+
+prometheus:
+  rbac:
+    create: false
+  server:
+    image:
+      repository: docker.io/prom/prometheus
+      tag: v3.14.0
+    extraFlags:
+      - web.enable-lifecycle
+      - web.enable-remote-write-receiver
+      - enable-feature=exemplar-storage
+    retention: 15d
+    persistentVolume:
+      enabled: true
+      size: 10Gi
+    statefulSet:
+      enabled: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+  # 完整应用可观测性不依赖集群级 exporter / Operator。
+  alertmanager:
+    enabled: false
+  kube-state-metrics:
+    enabled: false
+  prometheus-node-exporter:
+    enabled: false
+  prometheus-pushgateway:
+    enabled: false
+  scrapeConfigs:
+    kubernetes-api-servers:
+      enabled: false
+    kubernetes-nodes:
+      enabled: false
+    kubernetes-nodes-cadvisor:
+      enabled: false
+    kubernetes-service-endpoints:
+      enabled: false
+    kubernetes-service-endpoints-slow:
+      enabled: false
+    prometheus-pushgateway:
+      enabled: false
+    kubernetes-services:
+      enabled: false
+    kubernetes-pods:
+      enabled: false
+    kubernetes-pods-slow:
+      enabled: false
+  extraScrapeConfigs: |
+    - job_name: tempo
+      static_configs:
+        - targets:
+            - '{{ include "tracing-stack.backendName" (dict "Release" .Release "name" "tempo") }}:3200'
+    - job_name: loki
+      metrics_path: /metrics
+      scheme: '{{ (urlParse (include "tracing-stack.lokiURL" .)).scheme }}'
+      static_configs:
+        - targets:
+            - '{{ (urlParse (include "tracing-stack.lokiURL" .)).host }}'
+
+tempo:
+  replicas: 1
+  tempo:
+    tag: "2.9.0"
+    reportingEnabled: false
+    retention: 72h
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 2Gi
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+        wal:
+          path: /var/tempo/wal
+  persistence:
+    enabled: true
+    size: 10Gi
+    enableStatefulSetAutoDeletePVC: false
+  # 显式开启三个处理器，单独 enabled 并不激活 span/service-graph 计算。
+  config: |
+    memberlist:
+      cluster_label: {{ printf "%s.%s" .Release.Name .Release.Namespace | quote }}
+    multitenancy_enabled: false
+    usage_report:
+      reporting_enabled: {{ .Values.tempo.reportingEnabled }}
+    server:
+      http_listen_port: 3200
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+    ingester: {}
+    querier: {}
+    query_frontend: {}
+    compactor:
+      compaction:
+        block_retention: {{ .Values.tempo.retention }}
+    storage:
+      {{- toYaml .Values.tempo.storage | nindent 2 }}
+    overrides:
+      defaults:
+        metrics_generator:
+          processors: [service-graphs, span-metrics, local-blocks]
+    metrics_generator:
+      processor:
+        service_graphs: {}
+        span_metrics: {}
+        local_blocks:
+          flush_to_storage: true
+      storage:
+        path: /var/tempo/generator/wal
+        remote_write:
+          - url: {{ printf "%s/api/v1/write" (include "tracing-stack.prometheusURL" .) | quote }}
+            send_exemplars: true
+      traces_storage:
+        path: /var/tempo/generator/traces
+
+gateway:
+  mode: deployment
+  replicaCount: 1
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib
+    tag: "0.145.0"
+  command:
+    name: otelcol-contrib
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  alternateConfig:
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      batch:
+        timeout: 5s
+    exporters:
+      otlp/tempo:
+        endpoint: '{{ include "tracing-stack.backendName" (dict "Release" .Release "name" "tempo") }}:4317'
+        tls:
+          insecure: true
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 300s
+      otlphttp/loki:
+        endpoint: '{{ include "tracing-stack.lokiURL" . }}/otlp'
+        sending_queue:
+          enabled: true
+          queue_size: 1000
+        retry_on_failure:
+          enabled: true
+          max_elapsed_time: 300s
+      prometheusremotewrite:
+        endpoint: '{{ include "tracing-stack.prometheusURL" . }}/api/v1/write'
+        resource_to_telemetry_conversion:
+          enabled: true
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlp/tempo]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [otlphttp/loki]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheusremotewrite]
+  ports:
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
+    zipkin:
+      enabled: false
+
+# 完整安装使用独立 Loki。复用模式需显式指定 global.loki.url。
+loki:
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      allow_structured_metadata: true
+      retention_period: 72h
+    compactor:
+      retention_enabled: true
+      delete_request_store: filesystem
+  singleBinary:
+    replicas: 1
+    persistence:
+      enabled: true
+      size: 10Gi
+      enableStatefulSetAutoDeletePVC: false
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+  gateway:
+    enabled: false
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  sidecar:
+    rules:
+      enabled: false
+  test:
+    enabled: false
+  minio:
+    enabled: false

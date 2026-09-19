@@ -1,0 +1,21 @@
+dependencies:
+- name: homelab-common
+  repository: file://../homelab-common
+  version: 0.1.0
+- name: grafana
+  repository: https://grafana-community.github.io/helm-charts
+  version: 12.3.0
+- name: prometheus
+  repository: https://prometheus-community.github.io/helm-charts
+  version: 29.30.2
+- name: tempo
+  repository: https://grafana.github.io/helm-charts
+  version: 1.24.4
+- name: opentelemetry-collector
+  repository: https://open-telemetry.github.io/opentelemetry-helm-charts
+  version: 0.145.0
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.53.0
+digest: sha256:2b5d8175cc9651b00c1925d84f363649df8295cc8d54452fd1bf3210dde629ac
+generated: "2026-09-19T20:14:03.424362106+08:00"
