@@ -1,0 +1,34 @@
+{{- if .Values.thanos.enabled -}}
+{{- if not .Values.global.prometheus.install -}}
+{{- fail "thanos requires the bundled monitoring Prometheus" -}}
+{{- end -}}
+{{- if not .Values.monitoring.prometheus.thanosService.enabled -}}
+{{- fail "thanos requires monitoring.prometheus.thanosService.enabled" -}}
+{{- end -}}
+{{- $sidecar := dig "objectStorageConfig" "existingSecret" (dict) .Values.monitoring.prometheus.prometheusSpec.thanos -}}
+{{- if or (ne (default "" $sidecar.name) .Values.thanos.existingObjstoreSecret) (ne (default "" $sidecar.key) .Values.thanos.objstoreKey) -}}
+{{- fail "Thanos sidecar and storage components must reference the same object storage Secret and key" -}}
+{{- end -}}
+{{- end -}}
+{{- $edge := index .Values "otlp-edge" -}}
+{{- if $edge.enabled -}}
+{{- $token := dict -}}
+{{- range $env := $edge.extraEnvs -}}
+{{- if eq $env.name "OTLP_TOKEN" -}}
+{{- $token = dig "valueFrom" "secretKeyRef" (dict) $env -}}
+{{- end -}}
+{{- end -}}
+{{- $unused := required "otlp-edge.extraEnvs must reference an OTLP_TOKEN Secret name" $token.name -}}
+{{- $unused := required "otlp-edge.extraEnvs must reference an OTLP_TOKEN Secret key" $token.key -}}
+{{- if not $edge.ingress.enabled -}}
+{{- fail "external OTLP requires a TLS ingress" -}}
+{{- end -}}
+{{- range $ingress := prepend $edge.ingress.additionalIngresses $edge.ingress -}}
+{{- if not $ingress.tls -}}
+{{- fail "every external OTLP ingress requires TLS" -}}
+{{- end -}}
+{{- range $tls := $ingress.tls -}}
+{{- $unused := required "external OTLP TLS secretName is required" $tls.secretName -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

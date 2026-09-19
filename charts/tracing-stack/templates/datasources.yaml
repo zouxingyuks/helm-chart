@@ -13,13 +13,23 @@ data:
   {{ .Release.Name }}-tracing-datasources.yaml: |
     apiVersion: 1
     datasources:
+{{- if .Values.global.prometheus.install }}
+      - name: Alertmanager
+        uid: alertmanager
+        type: alertmanager
+        access: proxy
+        url: http://{{ include "kube-prometheus-stack.fullname" .Subcharts.monitoring }}-alertmanager:9093
+        jsonData:
+          implementation: prometheus
+          handleGrafanaManagedAlerts: false
+{{- end }}
 {{- if or .Values.global.prometheus.install .Values.global.grafana.install }}
       - name: Prometheus
         uid: {{ .Values.global.prometheus.datasourceUid | quote }}
         type: prometheus
         access: proxy
         isDefault: true
-        url: {{ include "tracing-stack.prometheusURL" . | quote }}
+        url: {{ include "tracing-stack.metricsQueryURL" . | quote }}
         jsonData:
           httpMethod: POST
           timeInterval: 30s

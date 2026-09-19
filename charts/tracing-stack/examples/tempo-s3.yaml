@@ -1,0 +1,17 @@
+tempo:
+  tempo:
+    extraArgs:
+      config.expand-env: true
+    extraEnvFrom:
+      - secretRef:
+          name: tempo-s3-credentials
+    storage:
+      trace:
+        backend: s3
+        local: null
+        s3:
+          bucket: observability-tempo
+          endpoint: s3.example.com
+          access_key: ${S3_ACCESS_KEY_ID}
+          secret_key: ${S3_SECRET_ACCESS_KEY}
+          insecure: false

@@ -20,6 +20,7 @@ def config(docs, key):
 
 EXTERNAL = [
     "--set", "global.grafana.install=false",
+    "--set", "alloy.enabled=false",
     "--set", "global.prometheus.install=false",
     "--set", "global.prometheus.url=http://prometheus.example:9090",
     "--set", "global.loki.install=false",
@@ -43,8 +44,9 @@ for release in ("tracing", "tempo", "my-loki", "gateway", "prometheus", "x" * 53
         assert set(pipelines) == {"logs", "metrics", "traces"}
         assert set(relay["receivers"]) == {"otlp"}
         assert "debug" not in relay["exporters"]
-        for pipeline in pipelines.values():
-            assert pipeline["processors"] == ["memory_limiter", "batch"]
+        for signal, pipeline in pipelines.items():
+            expected = ["memory_limiter", "transform/logs", "batch"] if signal == "logs" else ["memory_limiter", "batch"]
+            assert pipeline["processors"] == expected
             assert all(e in relay["exporters"] for e in pipeline["exporters"])
         tempo_host = relay["exporters"]["otlp/tempo"]["endpoint"].split(":")[0]
         assert tempo_host in services, (release, tempo_host, services)
@@ -80,8 +82,20 @@ for release in ("tracing", "tempo", "my-loki", "gateway", "prometheus", "x" * 53
         assert trace_ds["jsonData"]["tracesToLogsV2"]["datasourceUid"] == log_ds["uid"]
         assert "$${__span.traceId}" in trace_ds["jsonData"]["tracesToLogsV2"]["query"]
         workloads = [d for d in docs if d["kind"] in ("Deployment", "StatefulSet")]
-        assert len(workloads) == (5 if bundled else 2)
-        assert all(d["spec"]["replicas"] == 1 for d in workloads)
+        if bundled:
+            prom = next(d for d in docs if d["kind"] == "Prometheus")
+            assert prom["spec"]["enableRemoteWriteReceiver"]
+            assert prom["spec"]["serviceMonitorNamespaceSelector"] == {}
+            selector = prom["spec"]["serviceMonitorSelector"]["matchLabels"]
+            for monitor in (d for d in docs if d["kind"] == "ServiceMonitor"):
+                assert all(monitor["metadata"]["labels"].get(k) == v for k, v in selector.items()), monitor["metadata"]["name"]
+            assert any(d["kind"] == "Alertmanager" for d in docs)
+            assert any(d["kind"] == "DaemonSet" and d["metadata"].get("labels", {}).get("app.kubernetes.io/name") == "prometheus-node-exporter" for d in docs)
+            assert any(d["kind"] == "ConfigMap" and d["metadata"].get("labels", {}).get("grafana_dashboard") == "1" for d in docs)
+        else:
+            assert len(workloads) == 2
+        assert relay["exporters"]["otlp/tempo"]["sending_queue"]["storage"] == "file_storage"
+        assert relay["exporters"]["otlphttp/loki"]["sending_queue"]["storage"] == "file_storage"
         for d in workloads:
             assert d["spec"].get("persistentVolumeClaimRetentionPolicy", {}).get(
                 "whenDeleted", "Retain") == "Retain"
@@ -95,8 +109,35 @@ assert config(docs, "relay")["exporters"]["otlphttp/loki"]["endpoint"] == \
     "http://logs.example:3100/otlp"
 for setting in ("tempo.fullnameOverride=broken", "tempo.replicas=2", "loki.nameOverride=broken", "global.prometheus.install=false",
                 "global.loki.install=false", "grafanaDatasources.enabled=false",
-                "prometheus.server.fullnameOverride=broken"):
+                "monitoring.fullnameOverride=broken"):
     result = subprocess.run(["helm", "template", "invalid", str(CHART), "--set", setting],
                             capture_output=True, text=True)
     assert result.returncode != 0, setting
 print("PASS: 13 render scenarios, all signal pipelines, service names, correlation, PVC retention, and invalid overrides")
+
+for example in ("thanos.yaml", "otlp-ingress.yaml", "loki-s3.yaml", "tempo-s3.yaml", "existing-operator.yaml"):
+    docs = render("tracing", "-f", str(ROOT / "examples" / example))
+    if example == "thanos.yaml":
+        sources = config(docs, "tracing-tracing-datasources.yaml")["datasources"]
+        query = next(s for s in sources if s["type"] == "prometheus")["url"]
+        assert query.endswith("-thanos-query:10902")
+        relay = next(yaml.safe_load(d["data"]["relay"]) for d in docs if d["kind"] == "ConfigMap" and d["metadata"]["name"] == "tracing-gateway-statefulset")
+        assert "thanos" not in relay["exporters"]["prometheusremotewrite"]["endpoint"]
+        assert len([d for d in docs if d["kind"] == "StatefulSet" and "thanos" in d["metadata"]["name"]]) == 3
+    if example == "otlp-ingress.yaml":
+        ingresses = [d for d in docs if d["kind"] == "Ingress"]
+        assert len(ingresses) == 2
+        assert all(d["spec"]["tls"][0]["secretName"] for d in ingresses)
+        edge = next(yaml.safe_load(d["data"]["relay"]) for d in docs if d["kind"] == "ConfigMap" and d["metadata"]["name"] == "tracing-otlp-edge")
+        assert all(p["auth"]["authenticator"] == "bearertokenauth" for p in edge["receivers"]["otlp"]["protocols"].values())
+        assert not edge["exporters"]["otlphttp"]["sending_queue"]["enabled"]
+        deployment = next(d for d in docs if d["kind"] == "Deployment" and d["metadata"]["name"] == "tracing-otlp-edge")
+        token = next(e for e in deployment["spec"]["template"]["spec"]["containers"][0]["env"] if e["name"] == "OTLP_TOKEN")
+        assert token["valueFrom"]["secretKeyRef"] == {"name": "otlp-token", "key": "token"}
+    if example == "existing-operator.yaml":
+        assert not any(d["kind"] == "Deployment" and d["metadata"].get("labels", {}).get("app.kubernetes.io/component") == "prometheus-operator" for d in docs)
+        assert any(d["kind"] == "Prometheus" for d in docs)
+for setting in ("thanos.enabled=true", "otlp-edge.enabled=true"):
+    result = subprocess.run(["helm", "template", "invalid", str(CHART), "--set", setting], capture_output=True, text=True)
+    assert result.returncode != 0, setting
+print("PASS: Thanos query/write separation, external TLS/auth, S3 profiles and Operator reuse")

@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--url", default="http://127.0.0.1:13000")
 parser.add_argument("--user", default="admin")
 parser.add_argument("--password-file", required=True, type=pathlib.Path)
+parser.add_argument("--alertmanager", action="store_true", help="Verify the bundled Alertmanager through Grafana's datasource proxy")
 args = parser.parse_args()
 auth = base64.b64encode(f"{args.user}:{args.password_file.read_text().strip()}".encode()).decode()
 
@@ -38,3 +39,7 @@ assert l["derivedFields"][0]["datasourceUid"] == "tracing-tempo"
 assert l["derivedFields"][0]["url"] == "${__value.raw}"
 assert p["exemplarTraceIdDestinations"][0]["datasourceUid"] == "tracing-tempo"
 print("PASS provisioned service-map, metrics, logs, and exemplar links")
+if args.alertmanager:
+    status = get("/api/datasources/proxy/uid/alertmanager/api/v2/status")
+    assert "versionInfo" in status, status
+    print("PASS Alertmanager datasource proxy")

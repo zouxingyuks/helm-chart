@@ -1,0 +1,15 @@
+thanos:
+  enabled: true
+  existingObjstoreSecret: thanos-objstore
+  objstoreKey: objstore.yml
+monitoring:
+  prometheus:
+    thanosService:
+      enabled: true
+    prometheusSpec:
+      thanos:
+        image: quay.io/thanos/thanos:v0.39.2
+        objectStorageConfig:
+          existingSecret:
+            name: thanos-objstore
+            key: objstore.yml

@@ -1,0 +1,5 @@
+monitoring:
+  crds:
+    enabled: false
+  prometheusOperator:
+    enabled: false

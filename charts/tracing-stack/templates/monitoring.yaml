@@ -1,0 +1,82 @@
+{{- if .Values.global.prometheus.install }}
+{{- $root := . }}
+{{- range $component, $port := dict "gateway" "metrics" "tempo" "prom-metrics" "loki" "http-metrics" "alloy" "http-metrics" }}
+{{- if or (and (eq $component "loki") $root.Values.global.loki.install) (and (eq $component "alloy") $root.Values.alloy.enabled) (has $component (list "gateway" "tempo")) }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ $root.Release.Name }}-{{ $component }}
+  labels:
+    observability_stack: tracing
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $component }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+  podMetricsEndpoints:
+    - port: {{ $port }}
+      interval: 30s
+{{- end }}
+{{- end }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-observability
+  labels:
+    observability_stack: tracing
+spec:
+  groups:
+    - name: observability.delivery
+      rules:
+        - alert: ObservabilityQueueNearlyFull
+          expr: otelcol_exporter_queue_size / otelcol_exporter_queue_capacity > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Telemetry export queue exceeds 80% capacity"
+        - alert: ObservabilityEnqueueFailed
+          expr: sum by (namespace, pod) (increase({__name__=~"otelcol_exporter_enqueue_failed_(spans|log_records|metric_points)(_total)?"}[5m])) > 0
+          labels:
+            severity: critical
+          annotations:
+            summary: "Telemetry could not enter the export queue"
+        - alert: ObservabilityExportFailed
+          expr: sum by (namespace, pod) (increase({__name__=~"otelcol_exporter_send_failed_(spans|log_records|metric_points)(_total)?"}[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Telemetry export is failing"
+        {{- if not .Values.notifications.configured }}
+        - alert: ObservabilityNotificationsNotConfigured
+          expr: vector(1)
+          labels:
+            severity: info
+          annotations:
+            summary: "External alert notifications are not configured"
+            description: "Configure Alertmanager receivers and Secret references, then set notifications.configured=true."
+        {{- end }}
+{{- end }}
+{{- if and .Values.global.prometheus.install .Values.thanos.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ .Release.Name }}-thanos
+  labels:
+    observability_stack: tracing
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [thanos-query, thanos-store, thanos-compactor]
+  podMetricsEndpoints:
+    - port: http
+      interval: 30s
+{{- end }}

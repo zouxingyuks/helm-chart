@@ -138,7 +138,7 @@
         }
       }
     },
-    "prometheus": {
+    "monitoring": {
       "type": "object",
       "properties": {
         "nameOverride": {
@@ -146,18 +146,39 @@
             ""
           ]
         },
-        "server": {
+        "fullnameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "grafana": {
           "type": "object",
           "properties": {
-            "name": {
-              "const": "server"
-            },
-            "fullnameOverride": {
-              "enum": [
-                ""
-              ]
+            "enabled": {
+              "const": false
             }
           }
+        }
+      }
+    },
+    "gateway": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "const": "statefulset"
+        },
+        "replicaCount": {
+          "const": 1
+        },
+        "nameOverride": {
+          "enum": [
+            ""
+          ]
+        },
+        "fullnameOverride": {
+          "enum": [
+            ""
+          ]
         }
       }
     }

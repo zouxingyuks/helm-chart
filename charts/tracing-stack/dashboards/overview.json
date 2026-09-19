@@ -1,0 +1,149 @@
+{
+  "uid": "tracing-stack-overview",
+  "title": "Observability / Application and delivery",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "tags": [
+    "observability"
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request rate",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(traces_spanmetrics_calls_total[5m]))",
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error rate",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[5m]))",
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Export queue utilisation",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "otelcol_exporter_queue_size / otelcol_exporter_queue_capacity",
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Export failures",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (exporter) (rate({__name__=~\"otelcol_exporter_send_failed_(spans|log_records|metric_points)(_total)?\"}[5m]))",
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Service graph requests",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (client,server) (rate(traces_service_graph_request_total[5m]))",
+          "legendFormat": "__auto"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Active observability alerts",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "__PROMETHEUS_UID__"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ALERTS{alertname=~\"Observability.*\",alertstate=\"firing\"}",
+          "legendFormat": "__auto"
+        }
+      ]
+    }
+  ]
+}
