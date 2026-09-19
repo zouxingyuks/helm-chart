@@ -1,0 +1,40 @@
+{
+  "skill_name": "helm-chart-how-to",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "统一本仓库 AGENTS、README 和 docs 的知识归属。",
+      "expected_output": "主 skill 为 helm-chart-information-architecture；核对现有资料，不加载全局同名来源。"
+    },
+    {
+      "id": 2,
+      "prompt": "修改 subconverter Service 端口并同步现有 README 中对应数字。",
+      "expected_output": "当前无匹配专用实现 skill；读取局部规则、values、Service、相关测试及开发指南；普通文字同步不自动触发文档架构流程。"
+    },
+    {
+      "id": 3,
+      "prompt": "整理发布说明的归属，并构建 tracing-stack 安装包。",
+      "expected_output": "文档落位加载项目文档架构 skill；打包读取项目发布指南与脚本；不自动选择全局 helm-ghcr-oci-publish，也不发布远端。"
+    },
+    {
+      "id": 4,
+      "prompt": "按现有锁文件重建 LobeHub 依赖。",
+      "expected_output": "先发现项目 skills；若仍无匹配项，读取开发指南、Chart.yaml/lock；不虚构 helm-chart-dependency skill，不为此新建 skill。"
+    },
+    {
+      "id": 5,
+      "prompt": "README 中修正一个拼写。",
+      "expected_output": "直接读目标及适用规则完成机械修改；不强制加载文档架构 skill，不改变文档结构。"
+    },
+    {
+      "id": 6,
+      "prompt": "新加入 .agents/skills/helm-chart-testing 后处理测试任务。",
+      "expected_output": "先检查该文件是否真实存在及其 description；存在且匹配才加载，不因场景提到它而假设存在；不需要每次新增 skill 都复制整张目录。"
+    },
+    {
+      "id": 7,
+      "prompt": "下游 skill 要求读取根 AGENTS，其中又要求先用 helm-chart-how-to。",
+      "expected_output": "将同一任务路由视为已执行，继续下游流程，避免自调用循环。"
+    }
+  ]
+}
