@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "subconverter.fullname" . }}-config
+  name: {{ include "subconverter.backend.claimName" . | quote }}
   labels:
     {{- include "subconverter.backend.labels" . | nindent 4 }}
   {{- with .Values.backend.persistence.annotations }}
@@ -12,13 +12,7 @@ metadata:
 spec:
   accessModes:
     {{- toYaml .Values.backend.persistence.accessModes | nindent 4 }}
-  {{- if .Values.backend.persistence.storageClass }}
-  {{- if (eq "-" .Values.backend.persistence.storageClass) }}
-  storageClassName: ""
-  {{- else }}
-  storageClassName: {{ .Values.backend.persistence.storageClass }}
-  {{- end }}
-  {{- end }}
+  {{- include "homelab.common.storage.class" (dict "persistence" .Values.backend.persistence) | nindent 2 }}
   resources:
     requests:
       storage: {{ .Values.backend.persistence.size }}
