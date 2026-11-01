@@ -39,12 +39,16 @@ spec:
       - name: {{ .Chart.Name }}-backend
         securityContext:
           {{- toYaml .Values.backend.securityContext | nindent 12 }}
-        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag | default .Chart.AppVersion }}"
+        image: {{ include "homelab.common.images.image" (dict "imageRoot" (dict "repository" .Values.backend.image.repository "tag" .Values.backend.image.tag) "chart" .Chart) | quote }}
         imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
         ports:
         - name: http
           containerPort: 25500
           protocol: TCP
+        {{- with .Values.backend.env }}
+        env:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- if .Values.backend.healthCheck.enabled }}
         livenessProbe:
           httpGet:
@@ -86,13 +90,8 @@ spec:
       {{- end }}
       {{- if .Values.backend.persistence.enabled }}
       - name: data
-        {{- if .Values.backend.persistence.existingClaim }}
         persistentVolumeClaim:
-          claimName: {{ .Values.backend.persistence.existingClaim }}
-        {{- else }}
-        persistentVolumeClaim:
-          claimName: {{ include "subconverter.fullname" . }}-config
-        {{- end }}
+          claimName: {{ include "subconverter.backend.claimName" . | quote }}
       {{- end }}
       {{- with .Values.backend.nodeSelector }}
       nodeSelector:

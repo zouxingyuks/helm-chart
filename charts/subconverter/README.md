@@ -7,9 +7,12 @@
 ## 安装与访问
 
 以下命令在仓库根目录执行，需要 Helm 和可访问的 Kubernetes 集群；安装命令会写入集群。
-Chart 没有外部 Chart 依赖。使用默认 release 名时：
+Chart 依赖随安装包携带的 `homelab-common 0.1.0` library，不增加运行时组件。
+从源码安装时，先构建本地依赖；使用已携带依赖的 tgz 安装时无需此步骤。
+使用默认 release 名时：
 
 ```sh
+helm dependency build charts/subconverter
 helm install subconverter charts/subconverter
 kubectl port-forward svc/subconverter-frontend 8080:80
 ```
@@ -35,23 +38,23 @@ curl http://localhost:25500/version
 以下为常用配置；完整默认值以 values.yaml 为准，不使用旧的顶层 `image`、`service`、
 `replicaCount`、`resources` 作为后端配置。
 
-| 配置 | 默认值或行为 |
-| --- | --- |
-| `backend.enabled` / `frontend.enabled` | 均为 `true`，独立控制组件 |
-| `backend.replicaCount` / `frontend.replicaCount` | 均为 `1`，对应 HPA 启用时忽略 |
-| `backend.image.repository` / `backend.image.tag` | `asdlokj1qpi23/subconverter` / `0.9.0` |
-| `frontend.image.repository` / `frontend.image.tag` | `careywong/subweb` / `latest` |
-| `backend.service.type` / `backend.service.port` | `ClusterIP` / `25500`；前端 Service 固定为 ClusterIP、80 |
-| `backend.configMode` | `default`；其他模式见下方限制 |
-| `backend.persistence.enabled` | `false`；启用后挂载 `/base/` |
-| `backend.persistence.existingClaim` | 可指定已有 PVC，否则创建 PVC |
-| `backend.persistence.storageClass` | 空值省略 storageClassName；`-` 显式设为空字符串 |
-| `backend.resources` / `frontend.resources` | 分别配置 requests/limits |
-| `backend.autoscaling` / `frontend.autoscaling` | 独立 HPA，默认关闭 |
-| `backend.podDisruptionBudget` / `frontend.podDisruptionBudget` | 独立 PDB，默认关闭 |
-| `serviceAccount` | 两个组件使用同一 ServiceAccount 配置 |
-| `frontend.apiURL` | 空值生成集群内后端 Service URL |
-| `frontend.env` | 额外容器环境变量，按原样注入 |
+| 配置                                                           | 默认值或行为                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------- |
+| `backend.enabled` / `frontend.enabled`                         | 均为 `true`，独立控制组件                                |
+| `backend.replicaCount` / `frontend.replicaCount`               | 均为 `1`，对应 HPA 启用时忽略                            |
+| `backend.image.repository` / `backend.image.tag`               | `asdlokj1qpi23/subconverter` / `0.9.0`                   |
+| `frontend.image.repository` / `frontend.image.tag`             | `careywong/subweb` / `latest`                            |
+| `backend.service.type` / `backend.service.port`                | `ClusterIP` / `25500`；前端 Service 固定为 ClusterIP、80 |
+| `backend.configMode`                                           | `default`；其他模式见下方限制                            |
+| `backend.persistence.enabled`                                  | `false`；启用后挂载 `/base/`                             |
+| `backend.persistence.existingClaim`                            | 可指定已有 PVC，否则创建 PVC                             |
+| `backend.persistence.storageClass`                             | 空值省略 storageClassName；`-` 显式设为空字符串          |
+| `backend.resources` / `frontend.resources`                     | 分别配置 requests/limits                                 |
+| `backend.autoscaling` / `frontend.autoscaling`                 | 独立 HPA，默认关闭                                       |
+| `backend.podDisruptionBudget` / `frontend.podDisruptionBudget` | 独立 PDB，默认关闭                                       |
+| `serviceAccount`                                               | 两个组件使用同一 ServiceAccount 配置                     |
+| `frontend.apiURL`                                              | 空值生成集群内后端 Service URL                           |
+| `backend.env` / `frontend.env`                                 | 默认 `[]`；额外容器环境变量，按原样注入                  |
 
 前端还支持 `projectUrl`、`botLink`、`useStorage`、`cacheTTL`、`backendRelease`、
 `remoteConfig`、`advancedDoc`、`myurlsApi` 和 `configUploadApi`。对应的 `VUE_APP_*`
@@ -60,6 +63,34 @@ curl http://localhost:25500/version
 
 两个组件的调度、探针和安全上下文分别在 `backend.*` / `frontend.*` 配置。
 PDB 的 `minAvailable` 与 `maxUnavailable` 不应同时设置；使用后者时清除默认的前者。
+
+## 自定义环境变量
+
+`backend.env` 和 `frontend.env` 均使用 Kubernetes `EnvVar` 列表格式，默认 `[]`。
+后端非空时生成容器 `env`；前端列表追加到已有 `VUE_APP_*` 变量之后。
+设置已有前端变量时优先使用对应配置键（如 `frontend.apiURL`），避免重复变量名。
+
+```yaml
+backend:
+  env:
+    - name: TZ
+      value: "Asia/Shanghai"
+    - name: API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: subconverter-credentials
+          key: token
+frontend:
+  env:
+    - name: TZ
+      value: "Asia/Shanghai"
+```
+
+`value` 必须为字符串，数字或布尔值也需要引号，例如 `"123"`、`"false"`。
+也可用 `valueFrom.configMapKeyRef` 或 `valueFrom.fieldRef` 引用配置和 Pod 字段。
+Secret/ConfigMap 需在 release 的 namespace 中预先创建；Chart 不创建这些引用对象。
+同一条目不要同时设置 `value` 和 `valueFrom`。列表按原样注入，不进行 Helm 模板求值；
+敏感值建议使用 Secret 引用，不要明文写入 values。注入环境变量不代表镜像一定会读取它。
 
 ## 常用部署方式
 
@@ -127,13 +158,21 @@ ConfigMap，不能将其视为完整可用的配置方式。修复该行为前�
 
 ## 开发验证
 
-本地命令不访问集群、不下载依赖：
+通用命名、标签、ServiceAccount、后端镜像和 PVC 逻辑复用 `homelab-common`，
+应用 helper 保留组件后缀、selector 和 PVC 身份。前端镜像拼接及两组件 pullSecrets
+保留原行为；未启用公共库的 global 配置、registry/digest 或凭据合并功能。
+
+以下命令仅构建本地 library 并验证，不访问集群、不下载第三方 Chart。
+回归脚本需要 Python 3.9+ 和 PyYAML，覆盖默认值、命名覆盖、组件启停、存储及打包安装：
 
 ```sh
+helm dependency build charts/subconverter
 helm lint charts/subconverter --strict
 helm template subconverter charts/subconverter
 helm template subconverter charts/subconverter --set frontend.enabled=false
 helm template subconverter charts/subconverter --set backend.enabled=false
+python3 charts/subconverter/tests/check_common_migration.py
+python3 charts/subconverter/tests/check_render.py
 ```
 
 修改路由需核对 Ingress 的 Service 名和端口；修改配置需核对引用的 ConfigMap/PVC 是否

@@ -39,6 +39,17 @@ backend:
     annotations: {}
     clusterIP: ""
 
+  # Additional environment variables, passed through as Kubernetes EnvVar entries.
+  # Use quoted strings for value, or valueFrom for Secret/ConfigMap/Pod references.
+  env: []
+    # - name: TZ
+    #   value: "Asia/Shanghai"
+    # - name: API_TOKEN
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: subconverter-credentials
+    #       key: token
+
   # Configuration mode: default, configmap, or customImage
   # - default: Use built-in configuration from image
   # - configmap: Mount configuration files from ConfigMap (requires configFiles to be populated)
