@@ -18,8 +18,8 @@
     },
     {
       "id": 4,
-      "prompt": "按现有锁文件重建 LobeHub 依赖。",
-      "expected_output": "先发现项目 skills；若仍无匹配项，读取开发指南、Chart.yaml/lock；不虚构 helm-chart-dependency skill，不为此新建 skill。"
+      "prompt": "按现有锁文件重建 tracing-stack 依赖。",
+      "expected_output": "先发现项目 skills；若仍无匹配项，读取开发指南、Chart.yaml/lock 及 tests/build_dependencies.py；使用现有依赖构建脚本，不虚构 helm-chart-dependency skill，不为此新建 skill。"
     },
     {
       "id": 5,

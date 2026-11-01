@@ -19,7 +19,7 @@
 - **tracing-stack**：使用 `python3 charts/tracing-stack/tests/build_dependencies.py`。它从锁文件读取仓库，用临时 Helm 仓库配置和缓存构建；仍会联网，并写入该 chart 的依赖目录。
 - **本地 library**：`file://../homelab-common` 按消费 chart 目录解析。接入与兼容性要求见[公共库 README](../../charts/homelab-common/README.md)。
 
-DeepLX 和 LobeHub 的第三方仓库与版本由各自声明和锁文件确定，不能套用 tracing-stack 的脚本。`--skip-refresh` 仅跳过仓库索引刷新，不等于整个流程离线。
+`--skip-refresh` 仅跳过仓库索引刷新，不等于整个流程离线。
 
 官方命令语义：[dependency build](https://helm.sh/docs/helm/helm_dependency_build/)、[dependency update](https://helm.sh/docs/helm/helm_dependency_update/)。
 

@@ -6,13 +6,13 @@
 
 本库维护 Bitnami common **2.41.0** 的必要源码子集，所有定义和内部调用均改为 `homelab.common.*`。`Chart.yaml` 明确声明 `dependencies: []`，没有运行时 Bitnami 依赖，无需下载嵌套 chart，发布包包含全部实现、LICENSE 和 NOTICE。
 
-不采用简单 wrapper 或 dependency alias：Helm named templates 是全局的，alias 不会重命名 `common.*`。DeepLX 已依赖 common 2.10.1；wrapper 可能受另一版本覆盖影响。源码隔离使本库行为不受第三方 common 版本影响，但不能消除第三方 chart 之间自身的 common 冲突。
+不采用简单 wrapper 或 dependency alias：Helm named templates 是全局的，alias 不会重命名 `common.*`。wrapper 可能受另一版本的 `common.*` 覆盖影响。源码隔离使本库行为不受第三方 common 版本影响，但不能消除第三方 chart 之间自身的 common 冲突。
 
 参考制品 `common-2.41.0.tgz` 的 SHA-256：
 `f29eae562b8945add10869416586f0190cba79b0bcd231d036571862a52f7b1b`。
 上游：[Bitnami charts](https://github.com/bitnami/charts/tree/main/bitnami/common)。保留 Broadcom 版权和 Apache-2.0 许可证；改编范围见 NOTICE。升级上游时逐项审查选用 helper、内部 include、许可与行为差异，运行本库测试；不批量覆盖源码。
 
-设计依据是 AxonHub、LobeHub、Subconverter 的命名、标签和 ServiceAccount 重复实现，以及其镜像、拉取凭据、PVC 模板；模板渲染与合并来自 DeepLX 的 common 使用方式。保留现有命名算法，未采用新版 Bitnami 的 release 名称规范化或标签清洗。标签保护、合并的空值语义、StorageClass 优先级是本库自己的明确契约，不宣称与全部 Bitnami API 等价。
+最初设计参考了 AxonHub、LobeHub、Subconverter 的命名、标签和 ServiceAccount 重复实现，以及其镜像、拉取凭据、PVC 模板；模板渲染与合并参考了 DeepLX 当时的 common 使用方式。保留现有命名算法，未采用新版 Bitnami 的 release 名称规范化或标签清洗。标签保护、合并的空值语义、StorageClass 优先级是本库自己的明确契约，不宣称与全部 Bitnami API 等价。
 
 ## 消费
 
@@ -44,20 +44,20 @@ image: {{ include "homelab.common.images.image" (dict "imageRoot" .Values.image 
 
 以下名称均加前缀 `homelab.common.`。`context` 必须是**消费应用的根上下文 `$`**，不是 library 子值或 range 中的当前元素；`Chart` / `Release` 来自应用。未说明的可选 map/list 参数可省略或为 null，分别视为空 map/list。返回值均为字符串；YAML 片段使用 `nindent`，标量资源字段使用 `quote`。输入必须符合注明类型，库不负责把任意字符串变成合法 Kubernetes 名称。
 
-| Helper / 参数 | 返回与优先级 |
-| --- | --- |
-| `names.name $` | `Values.nameOverride` 非空时优先，否则 `Chart.Name`；截断 63 字符后去掉末尾一个 `-`。 |
-| `names.fullname $` | 非空 `fullnameOverride` 优先；否则取 nameOverride 或 Chart.Name，若 release 名含该名称则用 release，否则 `release-name`；同样截断与去尾。检查 contains 使用未截断名称。 |
-| `names.chart $` | `Chart.Name-Chart.Version`，`+` 替换为 `_`，截断 63 后去尾 `-`。 |
-| `labels.selector {context, component?}` | YAML map，只有 `app.kubernetes.io/name`、`app.kubernetes.io/instance`；非空字符串 component 显式增加 `app.kubernetes.io/component`。不读取自定义标签。 |
-| `labels.standard {context, component?, customLabels?}` | YAML map：自定义标签在先，库的 chart、managed-by、非空 appVersion、selector 值覆盖冲突。无 appVersion 时不生成版本标签。不会 tpl 自定义标签。与 selector 使用相同 component，确保 Pod 可被选中。 |
-| `images.image {imageRoot, global?, chart?}` | repository 必填且非空；registry 为非空 `global.imageRegistry` > `imageRoot.registry` > 无前缀。digest > 非空 tag > chart.AppVersion；均无则失败，不隐式 latest。tag 数字转字符串（0 按 Helm 空值规则视为缺省），推荐引号字符串。digest 包含算法如 `sha256:...`。repository 直接拼接，不解析已有 registry/tag；使用 registry 时 repository 应为不含 registry 的路径。 |
-| `images.pullSecrets {global?, pullSecrets?, images?}` | 完整 `imagePullSecrets:` YAML 字段；全局 imagePullSecrets、显式 pullSecrets、images 各项的 pullSecrets 依次合并，首次出现顺序去重。接受字符串和 `{name: string}`；空名、非字符串失败。无项返回空字符串，不创建 Secret，不 tpl。 |
-| `tplvalues.render {value, context, scope?}` | 字符串原样处理，其他值先 toYaml；含 `{{` 时执行 tpl。非空 scope 作为相对 `.`，`$` 仍为根上下文；空 scope 不启用相对作用域。只对可信配置使用，具有 Helm tpl 完整能力。 |
-| `tplvalues.merge {values, context, scope?}` | values 为 map 或可渲染为 YAML map 的字符串列表；先 render 再深度合并，**靠前项优先**，包括 false、0、空字符串、空列表和 null；列表整体替换。空 map 不清除低优先级 map 的子键。空列表返回 `{}`，非法 YAML/非 map 失败，顶层 `Error` 保留用于检测解析错误。输入对象不被修改。 |
-| `storage.class {persistence?, global?}` | 完整 `storageClassName:` YAML 字段；非空 persistence.storageClass > 非空 global.defaultStorageClass > 省略字段。`-` 输出显式空字符串，禁止默认 StorageClass；空值表示未配置而非禁用。忽略旧式 global.storageClass。只有显式传 global 才启用全局默认。 |
-| `storage.claimName {persistence?, defaultName?}` | 非空 existingClaim > 非空 defaultName，否则失败；名称不做 tpl、截断或添加后缀。应用负责 PVC 创建条件和原始名称。 |
-| `serviceAccount.name {context, serviceAccount?}` | 非空 name 优先；否则 create=true 时用应用 fullname，create=false/缺省时为 `default`。create 须为 boolean；应用负责创建条件、annotations、automount。 |
+| Helper / 参数                                          | 返回与优先级                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `names.name $`                                         | `Values.nameOverride` 非空时优先，否则 `Chart.Name`；截断 63 字符后去掉末尾一个 `-`。                                                                                                                                                                                                                                                                                |
+| `names.fullname $`                                     | 非空 `fullnameOverride` 优先；否则取 nameOverride 或 Chart.Name，若 release 名含该名称则用 release，否则 `release-name`；同样截断与去尾。检查 contains 使用未截断名称。                                                                                                                                                                                              |
+| `names.chart $`                                        | `Chart.Name-Chart.Version`，`+` 替换为 `_`，截断 63 后去尾 `-`。                                                                                                                                                                                                                                                                                                     |
+| `labels.selector {context, component?}`                | YAML map，只有 `app.kubernetes.io/name`、`app.kubernetes.io/instance`；非空字符串 component 显式增加 `app.kubernetes.io/component`。不读取自定义标签。                                                                                                                                                                                                               |
+| `labels.standard {context, component?, customLabels?}` | YAML map：自定义标签在先，库的 chart、managed-by、非空 appVersion、selector 值覆盖冲突。无 appVersion 时不生成版本标签。不会 tpl 自定义标签。与 selector 使用相同 component，确保 Pod 可被选中。                                                                                                                                                                     |
+| `images.image {imageRoot, global?, chart?}`            | repository 必填且非空；registry 为非空 `global.imageRegistry` > `imageRoot.registry` > 无前缀。digest > 非空 tag > chart.AppVersion；均无则失败，不隐式 latest。tag 数字转字符串（0 按 Helm 空值规则视为缺省），推荐引号字符串。digest 包含算法如 `sha256:...`。repository 直接拼接，不解析已有 registry/tag；使用 registry 时 repository 应为不含 registry 的路径。 |
+| `images.pullSecrets {global?, pullSecrets?, images?}`  | 完整 `imagePullSecrets:` YAML 字段；全局 imagePullSecrets、显式 pullSecrets、images 各项的 pullSecrets 依次合并，首次出现顺序去重。接受字符串和 `{name: string}`；空名、非字符串失败。无项返回空字符串，不创建 Secret，不 tpl。                                                                                                                                      |
+| `tplvalues.render {value, context, scope?}`            | 字符串原样处理，其他值先 toYaml；含 `{{` 时执行 tpl。非空 scope 作为相对 `.`，`$` 仍为根上下文；空 scope 不启用相对作用域。只对可信配置使用，具有 Helm tpl 完整能力。                                                                                                                                                                                                |
+| `tplvalues.merge {values, context, scope?}`            | values 为 map 或可渲染为 YAML map 的字符串列表；先 render 再深度合并，**靠前项优先**，包括 false、0、空字符串、空列表和 null；列表整体替换。空 map 不清除低优先级 map 的子键。空列表返回 `{}`，非法 YAML/非 map 失败，顶层 `Error` 保留用于检测解析错误。输入对象不被修改。                                                                                          |
+| `storage.class {persistence?, global?}`                | 完整 `storageClassName:` YAML 字段；非空 persistence.storageClass > 非空 global.defaultStorageClass > 省略字段。`-` 输出显式空字符串，禁止默认 StorageClass；空值表示未配置而非禁用。忽略旧式 global.storageClass。只有显式传 global 才启用全局默认。                                                                                                                |
+| `storage.claimName {persistence?, defaultName?}`       | 非空 existingClaim > 非空 defaultName，否则失败；名称不做 tpl、截断或添加后缀。应用负责 PVC 创建条件和原始名称。                                                                                                                                                                                                                                                     |
+| `serviceAccount.name {context, serviceAccount?}`       | 非空 name 优先；否则 create=true 时用应用 fullname，create=false/缺省时为 `default`。create 须为 boolean；应用负责创建条件、annotations、automount。                                                                                                                                                                                                                 |
 
 本库没有会自动注入应用的 values 默认值。nameOverride/fullnameOverride、component、storageClass、existingClaim 和各种自定义名字都应是字符串，标签 map 的值应为合法标签字符串。`tplvalues.merge` 的 values 参数必传且必须为列表（允许 `[]`）；缺失、null 或非列表会返回明确错误。应用应通过自己的 values schema 验证业务配置。
 

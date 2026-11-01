@@ -6,14 +6,12 @@
 
 下表概括职责，具体版本及条件以各 chart 的 `Chart.yaml` 和已有 `Chart.lock` 为准。
 
-| Chart | 实现与依赖 |
-| --- | --- |
-| [AxonHub](../../charts/axonhub/Chart.yaml) | 本地应用模板及 PostgreSQL 模板，无声明的子 chart 依赖 |
-| [DeepLX](../../charts/deeplx/Chart.yaml) | 本地应用模板，依赖第三方 Bitnami common |
-| [LobeHub](../../charts/lobehub/Chart.yaml) | 本地应用模板，按配置启用 PostgreSQL、Redis 子 chart |
-| [Subconverter](../../charts/subconverter/Chart.yaml) | 独立前后端 Deployment 与 Service，无声明的子 chart 依赖 |
-| [tracing-stack](../../charts/tracing-stack/Chart.yaml) | 组合第三方观测组件，gateway 为 Collector 别名；本地 helper 消费 homelab-common |
-| [homelab-common](../../charts/homelab-common/Chart.yaml) | library，无运行时子 chart 依赖 |
+| Chart                                                    | 实现与依赖                                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [AxonHub](../../charts/axonhub/Chart.yaml)               | 本地应用模板及 PostgreSQL 模板，无声明的子 chart 依赖                          |
+| [Subconverter](../../charts/subconverter/Chart.yaml)     | 独立前后端 Deployment 与 Service，无声明的子 chart 依赖                        |
+| [tracing-stack](../../charts/tracing-stack/Chart.yaml)   | 组合第三方观测组件，gateway 为 Collector 别名；本地 helper 消费 homelab-common |
+| [homelab-common](../../charts/homelab-common/Chart.yaml) | library，无运行时子 chart 依赖                                                 |
 
 ## 公共库边界
 

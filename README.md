@@ -2,14 +2,12 @@
 
 面向开发维护的 Helm chart 仓库。应用 chart 位于 `charts/`，公共 library 为应用提供模板 helper；各 chart 的配置和运行边界由各自 README 说明。
 
-| Chart | 用途与开发入口 |
-| --- | --- |
-| [axonhub](charts/axonhub/README.md) | AxonHub 应用及其 PostgreSQL 资源 |
-| [deeplx](charts/deeplx/README.md) | DeepLX 翻译 API，依赖 Bitnami common |
-| [homelab-common](charts/homelab-common/README.md) | 本地维护的公共模板 library，不单独部署 |
-| [lobehub](charts/lobehub/README.md) | LobeHub 应用，可选 PostgreSQL、Redis 子 chart |
-| [subconverter](charts/subconverter/README.md) | 独立前后端的订阅转换服务 |
-| [tracing-stack](charts/tracing-stack/README.md) | Grafana、Prometheus、Tempo、Loki、OpenTelemetry Gateway |
+| Chart                                             | 用途与开发入口                                          |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| [axonhub](charts/axonhub/README.md)               | AxonHub 应用及其 PostgreSQL 资源                        |
+| [homelab-common](charts/homelab-common/README.md) | 本地维护的公共模板 library，不单独部署                  |
+| [subconverter](charts/subconverter/README.md)     | 独立前后端的订阅转换服务                                |
+| [tracing-stack](charts/tracing-stack/README.md)   | Grafana、Prometheus、Tempo、Loki、OpenTelemetry Gateway |
 
 ## 开始开发
 
