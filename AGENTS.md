@@ -4,7 +4,7 @@
 |Task Router:.agents/skills/helm-chart-how-to/SKILL.md|本项目修改、审查、排错、测试、依赖、文档和发布任务先使用；仅路由项目 skills；同一任务已完成路由时不因重读规则重复启动。
 |Architecture:docs/architecture:{charts.md}|公共库契约:charts/homelab-common:{README.md}
 |Development:docs/development:{workflow.md,testing.md,releasing.md}
-|Charts:charts:{axonhub,deeplx,homelab-common,lobehub,subconverter,tracing-stack}|先读目标 Chart.yaml、values.yaml、README.md，再读相关 templates 与现有 schema/测试。
+|Charts:charts:{axonhub,homelab-common,subconverter,tracing-stack}|先读目标 Chart.yaml、values.yaml、README.md，再读相关 templates 与现有 schema/测试。
 |Doc Placement:.agents/skills/helm-chart-information-architecture/SKILL.md|涉及知识归属、文档结构、规则或工作流沉淀时使用；单纯文字修正按目标文档处理。
 |Authority:行为约束遵循适用规则；运行语义对照模板、values、schema、锁文件与测试；冲突报告证据，不凭文档新旧裁决或静默修改公开契约。
 |Boundaries:各 chart 保留自己的配置与拓扑；公共 helper 接入不自动改变名称、selector、PVC 身份或默认行为。
